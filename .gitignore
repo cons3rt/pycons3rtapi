@@ -1,0 +1,10 @@
+build
+venv
+dist
+.idea
+.project
+*egg-info*
+*.iml
+pycons3rtapi/*.pyc
+pycons3rtapi/*.pyo
+pycons3rtapi/MANIFEST
