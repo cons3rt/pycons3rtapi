@@ -177,3 +177,46 @@ def asset_config(config_file_path, cert_file_path=None):
         shutil.copy2(cert_file_path, cons3rtapi_config_dir)
     else:
         log.info('No cert_file_path arg provided, no cert file will be copied.')
+
+
+def set_config(config_data):
+    """Sets the pycons3rtapi config file data with the data provided after validation
+
+    :param config_data: (dict) pycons3rtapi configuration data
+    :return: None
+    :raises Cons3rtConfigError
+    """
+    log = logging.getLogger(mod_logger + '.set_config')
+
+    cons3rt_config = {}
+
+    # Validate data provided
+    if 'api_url' in config_data:
+        cons3rt_config['api_url'] = config_data['api_url']
+    else:
+        raise Cons3rtConfigError('api_url is required for pycons3rtapi')
+
+    if 'cert' in config_data:
+        cons3rt_config['cert'] = config_data['cert']
+    elif 'name' in config_data:
+        cons3rt_config['name'] = config_data['name']
+    else:
+        raise Cons3rtConfigError('Either name or cert is required in pycons3rtapi config data')
+
+    if 'projects' in config_data:
+        cons3rt_config['projects'] = []
+        for project in config_data['projects']:
+            add_project = {}
+            if 'name' in project:
+                add_project['name'] = project['name']
+            else:
+                raise Cons3rtConfigError('project data missing a name')
+            if 'rest_key' in project:
+                add_project['rest_key'] = project['rest_key']
+            else:
+                raise Cons3rtConfigError('project data missing a rest_key')
+            cons3rt_config['projects'].append(add_project)
+    else:
+        raise Cons3rtConfigError('projects is required in pycons3rtapi config data')
+    write_config(cons3rt_config)
+    log.info('Updated config data here: {f}'.format(f=cons3rtapi_config_file))

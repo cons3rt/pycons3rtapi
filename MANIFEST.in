@@ -1,6 +1,7 @@
 include LICENSE
-include README.md
+include README.rst
 include AUTHORS.txt
+include CHANGES.txt
 include pycons3rtapi/VERSION.txt
 include sample-configs/*
 include scripts/*

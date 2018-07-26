@@ -1,0 +1,12 @@
+
+0.0.2.dev0 (in development)
+===========================
+
+* Added cons3rtconfig set_config method to create a config file from
+config data passed as a dict
+
+
+0.0.1
+=====
+
+* Initial packagable version installable by pip
