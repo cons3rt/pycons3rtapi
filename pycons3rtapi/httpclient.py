@@ -25,10 +25,11 @@ class Client:
             self.base = self.base + '/'
 
         self.cls_logger = mod_logger + '.Client'
-        # Remove once cert handling is more developed
-        requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
-        requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecurePlatformWarning)
-        requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.SNIMissingWarning)
+
+        # TODO Remove once cert handling is more developed
+        #requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
+        #requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecurePlatformWarning)
+        #requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.SNIMissingWarning)
 
     @staticmethod
     def get_auth_headers(rest_user):
@@ -120,81 +121,69 @@ class Client:
             raise Cons3rtClientError, msg, trace
         return response
 
-    def http_post(self, rest_user, target, content_file=None, content_type='application/json'):
+    def http_post(self, rest_user, target, content_data=None, content_file=None, content_type='application/json'):
         """Makes an HTTP Post to the requested URL
 
         :param rest_user: (RestUser) user info
         :param target: (str) ReST API target URL
         :param content_file: (str) path to the content file
+        :param content_data: (str) body data
         :param content_type: (str) Content-Type, default is application/json
         :return: (str) HTTP Response or None
         :raises: Cons3rtClientError
         """
         self.validate_target(target)
-
         url = self.base + target
 
         headers = self.get_auth_headers(rest_user=rest_user)
         headers['Content-Type'] = '{t}'.format(t=content_type)
+        content = None
 
-        response = None
-
-        if content_file is None:
+        # Read data from the file if provided
+        if content_file:
             try:
-                response = requests.post(url, headers=headers, verify=False, cert=rest_user.cert_file_path)
-            except SSLError:
+                with open(content_file, 'r') as f:
+                    content = f.read()
+            except (OSError, IOError):
                 _, ex, trace = sys.exc_info()
-                msg = '{n}: There was an SSL error making an HTTP POST to URL: {u}\n{e}'.format(
-                    n=ex.__class__.__name__, u=url, e=str(ex))
+                msg = '{n}: Unable to read contents of file: {f}\n{e}'.format(
+                    n=ex.__class__.__name__, f=content_file, e=str(ex))
                 raise Cons3rtClientError, msg, trace
-            except requests.ConnectionError:
-                _, ex, trace = sys.exc_info()
-                msg = '{n}: Connection error encountered making HTTP Post:\n{e}'.format(
-                        n=ex.__class__.__name__, e=str(ex))
-                raise Cons3rtClientError, msg, trace
-            except requests.Timeout:
-                _, ex, trace = sys.exc_info()
-                msg = '{n}: HTTP post to URL {u} timed out\n{e}'.format(n=ex.__class__.__name__, u=url, e=str(ex))
-                raise Cons3rtClientError, msg, trace
-            except RequestException:
-                _, ex, trace = sys.exc_info()
-                msg = '{n}: There was a problem making an HTTP post to URL: {u}\n{e}'.format(
-                        n=ex.__class__.__name__, u=url, e=str(ex))
-                raise Cons3rtClientError, msg, trace
-            except Exception:
-                _, ex, trace = sys.exc_info()
-                msg = '{n}: Generic error caught making an HTTP post to URL: {u}\n{e}'.format(
-                        n=ex.__class__.__name__, u=url, e=str(ex))
-                raise Cons3rtClientError, msg, trace
-        else:
-            with open(content_file, 'r') as f:
-                x = f.read()
-                try:
-                    response = requests.post(url, headers=headers, data=x, verify=False, cert=rest_user.cert_file_path)
-                except SSLError:
-                    _, ex, trace = sys.exc_info()
-                    msg = '{n}: There was an SSL error making an HTTP POST to URL: {u}\n{e}'.format(
-                        n=ex.__class__.__name__, u=url, e=str(ex))
-                    raise Cons3rtClientError, msg, trace
-                except requests.ConnectionError:
-                    _, ex, trace = sys.exc_info()
-                    msg = '{n}: Connection error encountered making HTTP Post:\n{e}'.format(
-                        n=ex.__class__.__name__, e=str(ex))
-                    raise Cons3rtClientError, msg, trace
-                except requests.Timeout:
-                    _, ex, trace = sys.exc_info()
-                    msg = '{n}: HTTP post to URL {u} timed out\n{e}'.format(n=ex.__class__.__name__, u=url, e=str(ex))
-                    raise Cons3rtClientError, msg, trace
-                except RequestException:
-                    _, ex, trace = sys.exc_info()
-                    msg = '{n}: There was a problem making an HTTP post to URL: {u}\n{e}'.format(
-                        n=ex.__class__.__name__, u=url, e=str(ex))
-                    raise Cons3rtClientError, msg, trace
-                except Exception:
-                    _, ex, trace = sys.exc_info()
-                    msg = '{n}: Generic error caught making an HTTP post to URL: {u}\n{e}'.format(
-                        n=ex.__class__.__name__, u=url, e=str(ex))
-                    raise Cons3rtClientError, msg, trace
+        # Otherwise use data provided as content
+        elif content_data:
+            content = content_data
+
+        # Add content type if content was provided
+        if content:
+            headers['Content-Type'] = '{t}'.format(t=content_type)
+
+        # Make the put request
+        try:
+            response = requests.post(url, headers=headers, data=content, verify=False, cert=rest_user.cert_file_path)
+        except SSLError:
+            _, ex, trace = sys.exc_info()
+            msg = '{n}: There was an SSL error making an HTTP POST to URL: {u}\n{e}'.format(
+                n=ex.__class__.__name__, u=url, e=str(ex))
+            raise Cons3rtClientError, msg, trace
+        except requests.ConnectionError:
+            _, ex, trace = sys.exc_info()
+            msg = '{n}: Connection error encountered making HTTP POST:\n{e}'.format(
+                n=ex.__class__.__name__, e=str(ex))
+            raise Cons3rtClientError, msg, trace
+        except requests.Timeout:
+            _, ex, trace = sys.exc_info()
+            msg = '{n}: HTTP POST to URL {u} timed out\n{e}'.format(n=ex.__class__.__name__, u=url, e=str(ex))
+            raise Cons3rtClientError, msg, trace
+        except RequestException:
+            _, ex, trace = sys.exc_info()
+            msg = '{n}: There was a problem making an HTTP POST to URL: {u}\n{e}'.format(
+                n=ex.__class__.__name__, u=url, e=str(ex))
+            raise Cons3rtClientError, msg, trace
+        except Exception:
+            _, ex, trace = sys.exc_info()
+            msg = '{n}: Generic error caught making an HTTP POST to URL: {u}\n{e}'.format(
+                n=ex.__class__.__name__, u=url, e=str(ex))
+            raise Cons3rtClientError, msg, trace
         return response
 
     def http_put(self, rest_user, target, content_data=None, content_file=None, content_type='application/json'):
@@ -380,6 +369,9 @@ class Client:
             log.debug('Received an ACCEPTED HTTP Response Code!')
             return response.content
         else:
-            msg = 'Received HTTP code [{n}] with content:\n{c}'.format(n=str(response.status_code), c=response.content)
-            log.info(msg)
+            msg = 'Received HTTP code [{n}] with headers:\n{h}'.format(
+                n=str(response.status_code), h=response.headers)
+            if response.content:
+                msg += '\nand content:\n{c}'.format(c=response.content)
+            log.warn(msg)
             raise Cons3rtClientError(msg)

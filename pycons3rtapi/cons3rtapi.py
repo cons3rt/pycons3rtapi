@@ -16,7 +16,55 @@ from cons3rtconfig import cons3rtapi_config_file
 mod_logger = Logify.get_name() + '.pycons3rtapi.cons3rtapi'
 
 
-class Cons3rtApi:
+class Scenario(object):
+
+    def __init__(self, name='', config_script=None, teardown_script=None):
+        self.name = name
+        self.scenario_hosts = []
+        self.teardown_script = teardown_script
+        self.config_script = config_script
+
+    def add_scenario_host(self, role_name, system_id, subtype='virtualHost', build_order=1, master=False,
+                          host_config_script=None, host_teardown_script=None):
+        """Add a scenario host to the Scenario object
+
+        :param role_name: (str) role name
+        :param system_id: (int) system ID
+        :param subtype: (str) see CONS3RT API docs
+        :param build_order: (int) see CONS3RT API docs
+        :param master: (bool) see CONS3RT API docs
+        :param host_config_script: (str) see CONS3RT API docs
+        :param host_teardown_script: (str) see CONS3RT API docs
+        :return: None
+        """
+        scenario_host = {'systemRole': role_name, 'systemModule': {}}
+        scenario_host['systemModule']['subtype'] = subtype
+        scenario_host['systemModule']['id'] = system_id
+        scenario_host['systemModule']['buildOrder'] = build_order
+        if master:
+            scenario_host['systemModule']['master'] = 'true'
+        else:
+            scenario_host['systemModule']['master'] = 'false'
+        if host_config_script:
+            scenario_host['systemModule']['configureScenarioConfiguration'] = host_config_script
+        if host_teardown_script:
+            scenario_host['systemModule']['teardownScenarioConfiguration'] = host_teardown_script
+        self.scenario_hosts.append(scenario_host)
+
+    def set_config_script(self, config_script):
+        self.config_script = config_script
+
+    def set_teardown_script(self, teardown_script):
+        self.teardown_script = teardown_script
+
+    def create(self, cons3rt_api):
+        return cons3rt_api.create_scenario(
+            name=self.name,
+            scenario_hosts=self.scenario_hosts
+        )
+
+
+class Cons3rtApi(object):
 
     def __init__(self, url=None, base_dir=None, user=None, config_file=cons3rtapi_config_file, project=None):
         self.cls_logger = mod_logger + '.Cons3rtApi'
@@ -1010,6 +1058,161 @@ class Cons3rtApi:
             raise Cons3rtApiError, msg, trace
         log.info('Successfully added username {u} to project ID: {i}'.format(i=str(project_id), u=username))
 
+    def create_system(
+            self,
+            name=None,
+            operatingSystem=None,
+            minNumCpus=2,
+            minRam=2000,
+            minBootDiskCapacity=100000,
+            additionalDisks=None,
+            softwareComponents=None,
+            subtype='virtualHost',
+            vgpuRequired=False,
+            physicalMachineId=None,
+            json_content=None,
+            json_file=None
+    ):
+        """
+
+        :param name: (str) system name
+        :param operatingSystem: (str) see CONS3RT API docs
+        :param minNumCpus: (int) see CONS3RT API docs
+        :param minRam: (int) see CONS3RT API docs
+        :param minBootDiskCapacity: (int) see CONS3RT API docs
+        :param additionalDisks: (list) see CONS3RT API docs
+        :param softwareComponents: (list) see CONS3RT API docs
+        :param subtype: (str) see CONS3RT API docs
+        :param vgpuRequired: (bool) see CONS3RT API docs
+        :param physicalMachineId (int) see CONS3RT API docs
+        :param json_content (dict) JSON formatted content for the API call, supersedes other params except json_file
+        :param json_file: (str) path to JSON file containing all required data, supersedes any other params
+        :return: (int) ID of the system
+        :raises Cons3rtApiError
+        """
+        log = logging.getLogger(self.cls_logger + '.create_system')
+        log.debug('Attempting to create a system...')
+        content = {}
+        if json_file:
+            if not os.path.isfile(json_file):
+                raise Cons3rtApiError('JSON file not found: {f}'.format(f=json_file))
+
+            try:
+                content = json.loads(json_file)
+            except ValueError:
+                _, ex, trace = sys.exc_info()
+                msg = 'ValueError: Unable to decode JSON from file: {f}\n{e}'.format(f=json_file, e=str(ex))
+                raise Cons3rtApiError, msg, trace
+
+        elif json_content:
+            if not isinstance(json_content, dict):
+                raise Cons3rtApiError('json_content expected type dict, found: {t}'.format(
+                    t=json_content.__class__.__name__))
+            content = json_content
+
+        else:
+            content['name'] = name
+            content['subtype'] = subtype
+            if softwareComponents:
+                if not isinstance(softwareComponents, list):
+                    raise Cons3rtApiError('softwareComponents must be a list, found: {t}'.format(
+                        t=softwareComponents.__class__.__name__))
+                log.debug('Adding softwareComponents...')
+                content['softwareComponents'] = softwareComponents
+
+            if subtype == 'physicalHost':
+                log.debug('Creating JSON content from params for a physical host...')
+
+                if not isinstance(physicalMachineId, int):
+                    try:
+                        physicalMachineId = int(physicalMachineId)
+                    except ValueError:
+                        raise Cons3rtApiError('physicalMachineId must be an Integer, found: {t}'.format(
+                            t=physicalMachineId.__class__.__name__))
+
+                content['physicalMachine'] = {}
+                content['physicalMachine']['id'] = physicalMachineId
+
+            elif subtype == 'virtualHost':
+                log.debug('Creating JSON content from params for a virtual host template profile...')
+                content['templateProfile'] = {}
+                content['templateProfile']['operatingSystem'] = operatingSystem
+                content['templateProfile']['minNumCpus'] = minNumCpus
+                content['templateProfile']['minRam'] = minRam
+                content['templateProfile']['remoteAccessRequired'] = 'true'
+                content['templateProfile']['minBootDiskCapacity'] = minBootDiskCapacity
+                if vgpuRequired:
+                    content['templateProfile']['vgpuRequired'] = 'true'
+                else:
+                    content['templateProfile']['vgpuRequired'] = 'false'
+                if additionalDisks:
+                    if not isinstance(additionalDisks, list):
+                        raise Cons3rtApiError('additionalDisks must be list, found: {t}'.format(
+                            t=additionalDisks.__class__.__name__))
+                    content['templateProfile']['additionalDisks'] = additionalDisks
+
+            else:
+                raise Cons3rtApiError('subType must be virtualHost or physicalHost, found: {s}'.format(s=subtype))
+
+        log.debug('Attempting to create system with content: {d}'.format(d=content))
+        try:
+            system_id = self.cons3rt_client.create_system(system_data=content)
+        except Cons3rtClientError:
+            _, ex, trace = sys.exc_info()
+            msg = '{n}: Unable to create a system using JSON contents: {d}\n{e}'.format(
+                n=ex.__class__.__name__, d=content, e=str(ex))
+            raise Cons3rtApiError, msg, trace
+        log.info('Successfully created system ID {i} from file: {f}'.format(i=str(system_id), f=json_file))
+        return system_id
+
+    def create_scenario(self, name=None, scenario_hosts=None, json_content=None, json_file=None):
+        """Creates a scenario from the provided data
+
+        :param name: (str) Name of the scenario
+        :param scenario_hosts: (list) see CONS3RT API docs
+        :param json_content: JSON formatted content for the API call, supersedes other params except json_file
+        :param json_file: (str) path to JSON file containing all required data, supersedes any other params
+        :return: (int) scenario ID
+        :raises Cons3rtApiError
+        """
+        log = logging.getLogger(self.cls_logger + '.create_scenario')
+        log.debug('Attempting to create a scenario...')
+        content = {}
+        if json_file:
+            if not os.path.isfile(json_file):
+                raise Cons3rtApiError('JSON file not found: {f}'.format(f=json_file))
+
+            try:
+                content = json.loads(json_file)
+            except ValueError:
+                _, ex, trace = sys.exc_info()
+                msg = 'ValueError: Unable to decode JSON from file: {f}\n{e}'.format(f=json_file, e=str(ex))
+                raise Cons3rtApiError, msg, trace
+
+        elif json_content:
+            if not isinstance(json_content, dict):
+                raise Cons3rtApiError('json_content expected type dict, found: {t}'.format(
+                    t=json_content.__class__.__name__))
+            content = json_content
+
+        else:
+            content['name'] = name
+            if not isinstance(scenario_hosts, list):
+                raise Cons3rtApiError('scenario_hosts expected type list, found: {t}'.format(
+                    t=scenario_hosts.__class__.__name__))
+            content['scenarioHosts'] = scenario_hosts
+
+        # Attempt to create the team
+        try:
+            scenario_id = self.cons3rt_client.create_scenario(scenario_data=content)
+        except Cons3rtClientError:
+            _, ex, trace = sys.exc_info()
+            msg = '{n}: Unable to create a scenario using JSON file: {f}\n{e}'.format(
+                n=ex.__class__.__name__, f=json_file, e=str(ex))
+            raise Cons3rtApiError, msg, trace
+        log.info('Created scenario ID: {i}'.format(i=str(scenario_id)))
+        return scenario_id
+
     def create_scenario_from_json(self, json_file):
         """Creates a scenario using data from a JSON file
 
@@ -1017,29 +1220,88 @@ class Cons3rtApi:
         :return: (int) Scenario ID
         :raises: Cons3rtApiError
         """
-        log = logging.getLogger(self.cls_logger + '.create_scenario_from_json')
-        log.info('Attempting to query CONS3RT to create a scenario from JSON file...')
+        return self.create_scenario(json_file=json_file)
 
-        # Ensure the json_file arg is a string
-        if not isinstance(json_file, basestring):
-            msg = 'The json_file arg must be a string'
-            raise ValueError(msg)
+    def create_deployment(
+            self,
+            name=None,
+            custom_properties=None,
+            scenario_id=None,
+            json_content=None,
+            json_file=None
+    ):
+        """
 
-        # Ensure the JSON file exists
-        if not os.path.isfile(json_file):
-            msg = 'JSON file not found: {f}'.format(f=json_file)
-            raise OSError(msg)
+        :param name: (str) deployment name
+        :param custom_properties (list) see CONS3RT API docs
+        :param scenario_id: (int) ID of the scenario to include
+        :param json_content: JSON formatted content for the API call, supersedes other params except json_file
+        :param json_file: (str) path to JSON file containing all required data, supersedes any other params
+        :return: deployment ID
+        :raises Cons3rtApiError
+        """
+        log = logging.getLogger(self.cls_logger + '.create_deployment')
+        log.debug('Attempting to create a deployment...')
+        content = {}
+        if json_file:
+            if not os.path.isfile(json_file):
+                raise Cons3rtApiError('JSON file not found: {f}'.format(f=json_file))
 
-        # Attempt to create the team
+            try:
+                content = json.loads(json_file)
+            except ValueError:
+                _, ex, trace = sys.exc_info()
+                msg = 'ValueError: Unable to decode JSON from file: {f}\n{e}'.format(f=json_file, e=str(ex))
+                raise Cons3rtApiError, msg, trace
+
+        elif json_content:
+            if not isinstance(json_content, dict):
+                raise Cons3rtApiError('json_content expected type dict, found: {t}'.format(
+                    t=json_content.__class__.__name__))
+            content = json_content
+
+        else:
+            content['name'] = name
+
+            # Add custom props
+            if custom_properties:
+                if not isinstance(custom_properties, list):
+                    raise Cons3rtApiError('custom_properties expected type list, found: {t}'.format(
+                        t=custom_properties.__class__.__name__))
+                formatted_properties = []
+                for custom_prop in custom_properties:
+                    formatted_prop = {}
+                    if not isinstance(custom_prop, dict):
+                        raise Cons3rtApiError('Expected custom prop in dict format, found: {t}'.format(
+                            t=custom_prop.__class__.__name__))
+                    try:
+                        formatted_prop['key'] = custom_prop['key']
+                        formatted_prop['value'] = custom_prop['value']
+                    except KeyError:
+                        raise Cons3rtApiError('Found improperly formatted custom property: {p}'.format(
+                            p=custom_prop))
+                    formatted_properties.append(formatted_prop)
+                content['metadata'] = {'property': formatted_properties}
+
+            if scenario_id:
+                if not isinstance(scenario_id, int):
+                    try:
+                        scenario_id = int(scenario_id)
+                    except ValueError:
+                        raise Cons3rtApiError('scenario_id must be an Integer, found: {t}'.format(
+                            t=scenario_id.__class__.__name__))
+                content['scenarios'] = [scenario_id]
+
+        # Create the deployment
         try:
-            scenario_id = self.cons3rt_client.create_scenario(scenario_file=json_file)
+            deployment_id = self.cons3rt_client.create_deployment(deployment_data=content)
         except Cons3rtClientError:
             _, ex, trace = sys.exc_info()
-            msg = '{n}: Unable to create a scenario using JSON file: {f}\n{e}'.format(
-                n=ex.__class__.__name__, f=json_file, e=str(ex))
+            msg = '{n}: Unable to create a deployment using data: {d}\n{e}'.format(
+                n=ex.__class__.__name__, d=content, e=str(ex))
             raise Cons3rtApiError, msg, trace
-        log.info('Successfully created scenario ID {i} from file: {f}'.format(i=scenario_id, f=json_file))
-        return scenario_id
+        log.info('Created deployment ID: {i}'.format(i=deployment_id))
+        return deployment_id
 
     def create_deployment_from_json(self, json_file):
         """Creates a deployment using data from a JSON file
@@ -1048,29 +1310,7 @@ class Cons3rtApi:
         :return: (int) Deployment ID
         :raises: Cons3rtApiError
         """
-        log = logging.getLogger(self.cls_logger + '.create_deployment_from_json')
-        log.info('Attempting to query CONS3RT to create a deployment from JSON file...')
-
-        # Ensure the json_file arg is a string
-        if not isinstance(json_file, basestring):
-            msg = 'The json_file arg must be a string, found: {t}'.format(t=json_file.__class__.__name__)
-            raise Cons3rtApiError(msg)
-
-        # Ensure the JSON file exists
-        if not os.path.isfile(json_file):
-            msg = 'JSON file not found: {f}'.format(f=json_file)
-            raise Cons3rtApiError(msg)
-
-        # Attempt to create the team
-        try:
-            deployment_id = self.cons3rt_client.create_deployment(deployment_file=json_file)
-        except Cons3rtClientError:
-            _, ex, trace = sys.exc_info()
-            msg = '{n}: Unable to create a deployment using JSON file: {f}\n{e}'.format(
-                n=ex.__class__.__name__, f=json_file, e=str(ex))
-            raise Cons3rtApiError, msg, trace
-        log.info('Successfully created deployment ID {i} from file: {f}'.format(i=deployment_id, f=json_file))
-        return deployment_id
+        return self.create_deployment(json_file=json_file)
 
     def release_deployment_run(self, dr_id):
         """Release a deployment run by ID
@@ -1130,19 +1370,16 @@ class Cons3rtApi:
         if not os.path.isfile(json_file):
             raise Cons3rtApiError('JSON file not found: {f}'.format(f=json_file))
 
-        # Read JSON
         try:
-            with open(json_file, 'r') as f:
-                json_content = f.read()
-        except (OSError, IOError):
+            run_options = json.loads(json_file)
+        except ValueError:
             _, ex, trace = sys.exc_info()
-            msg = '{n}: Unable to read contents of file: {f}\n{e}'.format(
-                n=ex.__class__.__name__, f=json_file, e=str(ex))
+            msg = 'ValueError: Unable to decode JSON from file: {f}\n{e}'.format(f=json_file, e=str(ex))
             raise Cons3rtApiError, msg, trace
 
         # Attempt to run the deployment
         try:
-            dr_id = self.cons3rt_client.run_deployment(deployment_id=deployment_id, json_content=json_content)
+            dr_id = self.cons3rt_client.run_deployment(deployment_id=deployment_id, run_options=run_options)
         except Cons3rtClientError:
             _, ex, trace = sys.exc_info()
             msg = '{n}: Unable to launch deployment run: {f}\n{e}'.format(
@@ -1159,7 +1396,7 @@ class Cons3rtApi:
         :return (int) deployment run ID
         :raises Cons3rtApiError
         """
-        log = logging.getLogger(self.cls_logger + '.launch_deployment_run')
+        log = logging.getLogger(self.cls_logger + '.run_deployment')
 
         # Ensure the deployment_id is an int
         if not isinstance(deployment_id, int):
@@ -1173,18 +1410,9 @@ class Cons3rtApi:
         if not isinstance(run_options, dict):
             raise Cons3rtApiError('run_options arg must be a dict, found: {t}'.format(t=run_options.__class__.__name__))
 
-        # Create JSON content
-        try:
-            json_content = json.dumps(run_options)
-        except SyntaxError:
-            _, ex, trace = sys.exc_info()
-            msg = '{n}: There was a problem convertify data to JSON: {d}\n{e}'.format(
-                n=ex.__class__.__name__, d=str(run_options), e=str(ex))
-            raise Cons3rtApiError, msg, trace
-
         # Attempt to run the deployment
         try:
-            dr_id = self.cons3rt_client.run_deployment(deployment_id=deployment_id, json_content=json_content)
+            dr_id = self.cons3rt_client.run_deployment(deployment_id=deployment_id, run_options=run_options)
         except Cons3rtClientError:
             _, ex, trace = sys.exc_info()
             msg = '{n}: Unable to launch deployment run ID: {i}\n{e}'.format(

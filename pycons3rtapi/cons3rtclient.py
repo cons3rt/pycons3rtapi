@@ -139,10 +139,46 @@ class Cons3rtClient:
             msg = '{n}: The HTTP response contains a bad status code:\n{e}'.format(n=ex.__class__.__name__, e=str(ex))
             raise Cons3rtClientError, msg, trace
 
-    def create_scenario(self, scenario_file):
-        """Creates a Scenario using info in the provided JSON file
+    def create_system(self, system_data):
+        """Creates a system and returns the system ID
 
-        :param scenario_file: (str) path to JSON file
+        :param system_data: (dict) content to create the system
+        :return: (int) system ID
+        """
+
+        # Create JSON content
+        try:
+            json_content = json.dumps(system_data)
+        except SyntaxError:
+            _, ex, trace = sys.exc_info()
+            msg = '{n}: There was a problem converting data to JSON: {d}\n{e}'.format(
+                n=ex.__class__.__name__, d=str(system_data), e=str(ex))
+            raise Cons3rtClientError, msg, trace
+
+        try:
+            response = self.http_client.http_put(
+                rest_user=self.user,
+                target='systems/createsystem',
+                content_data=json_content)
+        except Cons3rtClientError:
+            _, ex, trace = sys.exc_info()
+            msg = '{n}: Unable to create a system from data: {d}:\n{e}'.format(
+                n=ex.__class__.__name__, d=system_data, e=str(ex))
+            raise Cons3rtClientError, msg, trace
+
+        # Get the Scenario ID from the response
+        try:
+            system_id = self.http_client.parse_response(response=response)
+        except Cons3rtClientError:
+            _, ex, trace = sys.exc_info()
+            msg = '{n}: The HTTP response contains a bad status code:\n{e}'.format(n=ex.__class__.__name__, e=str(ex))
+            raise Cons3rtClientError, msg, trace
+        return system_id
+
+    def create_scenario(self, scenario_data):
+        """Creates a Scenario using info in the provided data
+
+        :param scenario_data: (dict) data to provide to create the scenario
         :return: (int) Scenario ID
         :raises: Cons3rtClientError
         """
@@ -151,16 +187,25 @@ class Cons3rtClient:
         if self.base is None:
             raise Cons3rtClientError('Cons3rtClient was initialized with an invalid base')
 
+        # Create JSON content
+        try:
+            json_content = json.dumps(scenario_data)
+        except SyntaxError:
+            _, ex, trace = sys.exc_info()
+            msg = '{n}: There was a problem converting data to JSON: {d}\n{e}'.format(
+                n=ex.__class__.__name__, d=str(scenario_data), e=str(ex))
+            raise Cons3rtClientError, msg, trace
+
         # Create the Scenario
         try:
             response = self.http_client.http_put(
                 rest_user=self.user,
                 target='scenarios/createscenario',
-                content_file=scenario_file)
+                content_data=json_content)
         except Cons3rtClientError:
             _, ex, trace = sys.exc_info()
-            msg = '{n}: Unable to create a Scenario from file: {f}:\n{e}'.format(
-                n=ex.__class__.__name__, f=scenario_file, e=str(ex))
+            msg = '{n}: Unable to create a Scenario from data: {d}:\n{e}'.format(
+                n=ex.__class__.__name__, d=scenario_data, e=str(ex))
             raise Cons3rtClientError, msg, trace
 
         # Get the Scenario ID from the response
@@ -172,10 +217,10 @@ class Cons3rtClient:
             raise Cons3rtClientError, msg, trace
         return scenario_id
 
-    def create_deployment(self, deployment_file):
-        """Creates a deployment using info in the provided JSON file
+    def create_deployment(self, deployment_data):
+        """Creates a deployment using info in the provided data
 
-        :param deployment_file: (str) path to JSON file
+        :param deployment_data: (dict) data to create the deployment
         :return: (int) Deployment ID
         :raises: Cons3rtClientError
         """
@@ -184,16 +229,25 @@ class Cons3rtClient:
         if self.base is None:
             raise Cons3rtClientError('Cons3rtClient was initialized with an invalid base')
 
+        # Create JSON content
+        try:
+            json_content = json.dumps(deployment_data)
+        except SyntaxError:
+            _, ex, trace = sys.exc_info()
+            msg = '{n}: There was a problem converting data to JSON: {d}\n{e}'.format(
+                n=ex.__class__.__name__, d=str(deployment_data), e=str(ex))
+            raise Cons3rtClientError, msg, trace
+
         # Create the Deployment
         try:
             response = self.http_client.http_put(
                 rest_user=self.user,
                 target='deployments/createdeployment',
-                content_file=deployment_file)
+                content_data=json_content)
         except Cons3rtClientError:
             _, ex, trace = sys.exc_info()
-            msg = '{n}: Unable to create a deployment from file: {f}:\n{e}'.format(
-                n=ex.__class__.__name__, f=deployment_file, e=str(ex))
+            msg = '{n}: Unable to create a deployment from data: {d}:\n{e}'.format(
+                n=ex.__class__.__name__, d=deployment_data, e=str(ex))
             raise Cons3rtClientError, msg, trace
 
         # Get the deployment ID from the response
@@ -470,7 +524,17 @@ class Cons3rtClient:
             raise Cons3rtClientError, msg, trace
         return result
 
-    def run_deployment(self, deployment_id, json_content):
+    def run_deployment(self, deployment_id, run_options):
+
+        # Create JSON content
+        try:
+            json_content = json.dumps(run_options)
+        except SyntaxError:
+            _, ex, trace = sys.exc_info()
+            msg = '{n}: There was a problem converting data to JSON: {d}\n{e}'.format(
+                n=ex.__class__.__name__, d=str(run_options), e=str(ex))
+            raise Cons3rtClientError, msg, trace
+
         response = self.http_client.http_put(
             rest_user=self.user,
             target='deployments/{i}/execute'.format(i=deployment_id),

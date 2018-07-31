@@ -91,11 +91,23 @@ In your python code:
     # with the path to the JSON file
 
     # launch a deployment
-    dr_id = cons3r_api.launch_deployment_run_from_json(
+    dr_id = cons3rt_api.launch_deployment_run_from_json(
         deployment_id='12345',
         json_file='/path/to/json/file.json'
     )
 
+
+Here is a sample file.json for launch_deployment_run_from_json, replace
+the virtualizationRealmId with yours: ::
+
+    {
+      "deploymentRunName": "ReST Test",
+      "endState": "TESTS_EXECUTED_RESOURCES_RESERVED",
+      "virtualizationRealmId": "12345",
+      "username": "myuser",
+      "password": "mypassword",
+      "retainOnError": "true"
+    }
 
 
 Asset Documentation
