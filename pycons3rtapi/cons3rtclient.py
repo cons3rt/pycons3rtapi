@@ -647,10 +647,10 @@ class Cons3rtClient:
             raise Cons3rtClientError, msg, trace
 
     def import_asset(self, asset_zip_file):
-        """Imports a new asset
+        """Imports a new asset from the asset zip file
 
         :param asset_zip_file: (str) path to the asset zip file
-        :return: None
+        :return: (int) software asset ID
         :raises: Cons3rtClientError
         """
         try:
@@ -665,11 +665,12 @@ class Cons3rtClient:
                 n=ex.__class__.__name__, f=asset_zip_file, e=str(ex))
             raise Cons3rtClientError, msg, trace
         try:
-            self.http_client.parse_response(response=response)
+            asset_id = self.http_client.parse_response(response=response)
         except Cons3rtClientError:
             _, ex, trace = sys.exc_info()
             msg = '{n}: The HTTP response contains a bad status code\n{e}'.format(n=ex.__class__.__name__, e=str(ex))
             raise Cons3rtClientError, msg, trace
+        return asset_id
 
     def enable_remote_access(self, virtualization_realm_id, size):
         """Attempts to enable remote access in virtualization realm ID to the specified size

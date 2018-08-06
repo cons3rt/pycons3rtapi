@@ -905,10 +905,10 @@ class Cons3rtApi(object):
         log.info('Successfully updated visibility for Asset ID {i} to: {s}'.format(i=str(asset_id), s=visibility))
 
     def import_asset(self, asset_zip_file):
-        """
+        """Imports an asset zip file into CONS3RT
 
-        :param asset_zip_file:
-        :return:
+        :param asset_zip_file: (str) full path to the asset zip file
+        :return: (int) asset ID
         :raises: Cons3rtApiError
         """
         log = logging.getLogger(self.cls_logger + '.import_asset')
@@ -923,15 +923,17 @@ class Cons3rtApi(object):
             msg = 'Asset zip file file not found: {f}'.format(f=asset_zip_file)
             raise OSError(msg)
 
-        # Attempt to update the asset ID
+        # Attempt to import the asset
         try:
-            self.cons3rt_client.import_asset(asset_zip_file=asset_zip_file)
+            asset_id = self.cons3rt_client.import_asset(asset_zip_file=asset_zip_file)
         except Cons3rtClientError:
             _, ex, trace = sys.exc_info()
             msg = '{n}: Unable to import asset using asset zip file: {f}\n{e}'.format(
                 n=ex.__class__.__name__, f=asset_zip_file, e=str(ex))
             raise Cons3rtApiError, msg, trace
-        log.info('Successfully imported asset from file: {f}'.format(f=asset_zip_file))
+        log.info('Successfully imported asset from file [{f}] as asset ID: {i}'.format(
+            f=asset_zip_file, i=str(asset_id)))
+        return asset_id
 
     def enable_remote_access(self, virtualization_realm_id, size=None):
         """Enables Remote Access for a specific virtualization realm, and uses SMALL

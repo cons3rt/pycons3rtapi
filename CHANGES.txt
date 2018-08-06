@@ -1,6 +1,11 @@
 
-0.0.2
+0.0.3.dev0 (in development)
 ===========================
+
+* Added the asset ID returned from importing a software asser
+
+0.0.2
+=====
 
 * Added cons3rtconfig set_config method to create a config file from
 config data passed as a dict
