@@ -18,7 +18,11 @@ mod_logger = Logify.get_name() + '.pycons3rtapi.cons3rtapi'
 # List of site URLs
 site_urls = {
     'hmc': 'https://www.milcloud.hanscom.hpc.mil/rest/api/',
-    'cons3rt.com': 'https://www.cons3rt.com/rest/api/'
+    'cons3rt.com': 'https://www.cons3rt.com/rest/api/',
+    'qa': 'https://www.qa.cons3rt.io/rest/api/',
+    'qa2': 'https://www.qa2.cons3rt.io/rest/api/',
+    'ci': 'https://www.ci.cons3rt.io/rest/api/',
+    'dev': 'https://www.cons3rt-dev.ma.jackpinetech.com/rest/api/'
 }
 
 # The default site selection
@@ -26,7 +30,8 @@ default_api_url = site_urls['hmc']
 
 # List of sites that require certificate-based auth
 cert_auth_sites = [
-    site_urls['hmc']
+    site_urls['hmc'],
+    site_urls['qa2']
 ]
 
 # String representation of the list of sites

@@ -2,7 +2,12 @@
 0.0.3.dev0 (in development)
 ===========================
 
-* Added the asset ID returned from importing a software asser
+* Added the asset ID returned from importing a software asset
+* Added the cloudspace command to the cons3rt CLI, with options to
+delete all inactive runs from a cloudspace, and to release all active
+runs from a cloudspace like so:
+  * $ cons3rt cloudspace --ids=3,4,5 --delete_inactive_runs --release_active_runs
+* Fixed a bug in create_deployments when passing in a scenario_id
 
 0.0.2
 =====

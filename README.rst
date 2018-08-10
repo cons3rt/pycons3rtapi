@@ -20,7 +20,7 @@ If you have Python 2.7 installed with pip, you can run: ::
 
 Also you can install specific versions: ::
 
-    pip install pycons3rtapi==0.0.1
+    pip install pycons3rtapi==0.0.2
 
 Install from source
 -------------------
@@ -42,8 +42,8 @@ To create your own pycons3rtapi assets, from the pycons3rtapi repo root director
 
 This will create your own Linux and Windows pycons3rt assets for import: ::
 
-    ./build/asset-pycons3rt-linux.zip
-    ./build/asset-pycons3rt-windows.zip
+    ./build/asset-pycons3rtapi-linux.zip
+    ./build/asset-pycons3rtapi-windows.zip
 
 Configuration
 =============
@@ -73,25 +73,25 @@ In your python code:
 
     from pycons3rtapi.cons3rtapi import Cons3rtApi, Cons3rtApiError
 
-    cons3rt_api = Cons3rtApi(url='https://www.milcloud.hanscom.hpc.mil/rest/api/')
+    c5t = Cons3rtApi()
 
     # list scenarios
-    scenarios = cons3rt_api.list_scenarios()
+    scenarios = c5t.list_scenarios()
 
     # retrieve active deployment runs
-    active_drs = cons3rt_api.list_deployment_runs_in_virtualization_realm(
+    active_drs = c5t.list_deployment_runs_in_virtualization_realm(
         vr_id=10,
         search_type='SEARCH_ACTIVE'
     )
 
     # retrieve deployment run details
-    active_dr_details = cons3rt_api.retrieve_deployment_run_details(dr_id='12345')
+    active_dr_details = c5t.retrieve_deployment_run_details(dr_id='12345')
 
     # For some calls you can store a JSON file on the local file system and call
     # with the path to the JSON file
 
     # launch a deployment
-    dr_id = cons3rt_api.launch_deployment_run_from_json(
+    dr_id = c5t.launch_deployment_run_from_json(
         deployment_id='12345',
         json_file='/path/to/json/file.json'
     )
@@ -108,6 +108,45 @@ the virtualizationRealmId with yours: ::
       "password": "mypassword",
       "retainOnError": "true"
     }
+
+
+CONS3RT CLI
+===========
+
+The "cons3rt" command line interface (CLI) gives you a convenience way to make
+ReST API calls by typing simple commands.  If you have followed the instructions
+this far you are already set up to run CLI commands.  If not, see the installation
+section.
+
+Run cons3rt CLI command as follows: ::
+
+    cons3rt <command> <options>
+
+Commands and various options are described below:
+
+config
+------
+
+Configures pycons3rtapi and the CLI with your CONS3RT site connection information
+and API key.
+
+No options required.
+
+cloudspace
+----------
+
+Perform actions on your CONS3RT cloudspaces.  You will need to get cloudspace IDs.
+
+Options:
+
+* --id = Specify a single cloudspace ID
+* --ids = Specify a list of cloudspace IDs (e.g --ids=288,432,648)
+* --release_active_runs = Releases all active runs in the cloudspace ID(s)
+* --delete_inactive_runs = Deletes all inactive runs from the cloudspace ID(s)
+
+Examples: ::
+
+    cons3rt cloudspace --release_active_runs --delete_inactive_runs --ids=288,432,648
 
 
 Asset Documentation

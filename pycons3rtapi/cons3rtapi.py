@@ -1075,7 +1075,7 @@ class Cons3rtApi(object):
             json_content=None,
             json_file=None
     ):
-        """
+        """Creates a system from the provided options
 
         :param name: (str) system name
         :param operatingSystem: (str) see CONS3RT API docs
@@ -1161,10 +1161,10 @@ class Cons3rtApi(object):
             system_id = self.cons3rt_client.create_system(system_data=content)
         except Cons3rtClientError:
             _, ex, trace = sys.exc_info()
-            msg = '{n}: Unable to create a system using JSON contents: {d}\n{e}'.format(
-                n=ex.__class__.__name__, d=content, e=str(ex))
+            msg = '{n}: Unable to create a system using contents: {d}\n{e}'.format(
+                n=ex.__class__.__name__, d=str(content), e=str(ex))
             raise Cons3rtApiError, msg, trace
-        log.info('Successfully created system ID {i} from file: {f}'.format(i=str(system_id), f=json_file))
+        log.info('Successfully created system ID: {i}'.format(i=str(system_id)))
         return system_id
 
     def create_scenario(self, name=None, scenario_hosts=None, json_content=None, json_file=None):
@@ -1209,10 +1209,10 @@ class Cons3rtApi(object):
             scenario_id = self.cons3rt_client.create_scenario(scenario_data=content)
         except Cons3rtClientError:
             _, ex, trace = sys.exc_info()
-            msg = '{n}: Unable to create a scenario using JSON file: {f}\n{e}'.format(
-                n=ex.__class__.__name__, f=json_file, e=str(ex))
+            msg = '{n}: Unable to create a scenario using JSON content: {c}\n{e}'.format(
+                n=ex.__class__.__name__, c=str(content), e=str(ex))
             raise Cons3rtApiError, msg, trace
-        log.info('Created scenario ID: {i}'.format(i=str(scenario_id)))
+        log.info('Successfully created scenario ID: {i}'.format(i=str(scenario_id)))
         return scenario_id
 
     def create_scenario_from_json(self, json_file):
@@ -1232,7 +1232,7 @@ class Cons3rtApi(object):
             json_content=None,
             json_file=None
     ):
-        """
+        """Created a deployment from the provided options
 
         :param name: (str) deployment name
         :param custom_properties (list) see CONS3RT API docs
@@ -1292,7 +1292,11 @@ class Cons3rtApi(object):
                     except ValueError:
                         raise Cons3rtApiError('scenario_id must be an Integer, found: {t}'.format(
                             t=scenario_id.__class__.__name__))
-                content['scenarios'] = [scenario_id]
+                content['scenarios'] = [
+                    {
+                        'id': scenario_id
+                    }
+                ]
 
         # Create the deployment
         try:
@@ -1300,9 +1304,9 @@ class Cons3rtApi(object):
         except Cons3rtClientError:
             _, ex, trace = sys.exc_info()
             msg = '{n}: Unable to create a deployment using data: {d}\n{e}'.format(
-                n=ex.__class__.__name__, d=content, e=str(ex))
+                n=ex.__class__.__name__, d=str(content), e=str(ex))
             raise Cons3rtApiError, msg, trace
-        log.info('Created deployment ID: {i}'.format(i=deployment_id))
+        log.info('Successfully created deployment ID: {i}'.format(i=deployment_id))
         return deployment_id
 
     def create_deployment_from_json(self, json_file):
