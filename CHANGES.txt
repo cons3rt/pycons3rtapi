@@ -1,6 +1,6 @@
 
-0.0.3.dev0 (in development)
-===========================
+0.0.3
+=====
 
 * Added the asset ID returned from importing a software asset
 * Added the cloudspace command to the cons3rt CLI, with options to
