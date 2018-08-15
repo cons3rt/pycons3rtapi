@@ -1,18 +1,18 @@
 pycons3rtapi
-===========
+============
 
 Python API for CONS3RT
 
 Features
-========
+--------
 
 - Python bindings for CONS3RT API calls
+- The `cons3rt` command line interface (CLI) for easy ReST calls
 
 Installation
-============
+------------
 
-Install from pip
-----------------
+### Install from pip (latest release)
 
 If you have Python 2.7 installed with pip, you can run: ::
 
@@ -20,19 +20,15 @@ If you have Python 2.7 installed with pip, you can run: ::
 
 Also you can install specific versions: ::
 
-    pip install pycons3rtapi==0.0.2
+    pip install pycons3rtapi==0.0.3
 
-Install from source
--------------------
-
-::
+### Install from source (development) ::
 
     git clone https://github.com/cons3rt/pycons3rtapi
     cd pycons3rtapi
     python setup.py install
 
-Install with CONS3RT assets
----------------------------
+### Install with CONS3RT assets
 
 Search for community **pycons3rtapi** software assets in HmC or cons3rt.com to use.
 
@@ -46,7 +42,7 @@ This will create your own Linux and Windows pycons3rt assets for import: ::
     ./build/asset-pycons3rtapi-windows.zip
 
 Configuration
-=============
+-------------
 
 Run the following command to configure pycons3rtapi: ::
 
@@ -58,18 +54,15 @@ configuration file at **~/.cons3rt/config.json**.
 Alternatively, you can stage your own config file to **~/.cons3rt/config.json**, or
 use one of the samples in the **sample-configs** directory.
 
-ReST API Tokens
-~~~~~~~~~~~~~~~
+### ReST API Tokens
 
-Note: See the `this article <https://kb.cons3rt.com/kb/accounts/api-tokens>`_ for info
+Note: See the [this article](https://kb.cons3rt.com/kb/accounts/api-tokens) for info
 on generating an API token for one or more of your projects.
 
-Example Usage
-=============
+Sample Code
+===========
 
-In your python code:
-
-::
+In your python code: ::
 
     from pycons3rtapi.cons3rtapi import Cons3rtApi, Cons3rtApiError
 
@@ -90,11 +83,76 @@ In your python code:
     # For some calls you can store a JSON file on the local file system and call
     # with the path to the JSON file
 
-    # launch a deployment
+    # Launch a deployment from a JSON file
+    # Note: edit the deployment_id and virtualizationRealmId in the JSON file
     dr_id = c5t.launch_deployment_run_from_json(
         deployment_id='12345',
         json_file='/path/to/json/file.json'
     )
+    
+    # Create a simple Red Hat 7 system
+    system_id = c5t.create_system(
+        name='Hello World System',
+        operatingSystem='RHEL_7_X64',
+        minNumCpus=2,
+        minRam=2000,
+        minBootDiskCapacity=102400,
+        subtype='virtualHost'
+    )
+    
+    # Build scenario hosts data, a list of systems to be launched together in a scenario
+    scenario_hosts = [
+        {
+            'systemRole': 'helloWorldSystem1',
+            'buildOrder': 1,
+            'systemModule': 
+            {
+                'subtype': 'virtualHost',
+                'id': system_id
+            }
+        },
+        {
+            'systemRole': 'helloWorldSystem2',
+            'buildOrder': 2,
+            'systemModule': 
+            {
+                'subtype': 'virtualHost',
+                'id': system_id
+            }
+        }
+    ]
+    
+    # Create a scenario from the scenario hosts
+    scenario_id = c5t.create_scenario(
+        name='Hello World Scenario',
+        scenario_hosts=scenario_hosts
+    )
+    
+    # Add the scenario to a deployment
+    deployment_id = c5t.create_deployment(
+        name='Hello World Deployment',
+        scenario_id=scenario_id
+    )
+    
+    # Create run options for the deployment
+    # Note: replace the virtualizationRealmId
+    run_options = {
+        'deploymentRunName': 'Hello World',
+        'virtualizationRealmId': 12345,
+        'username': 'my_username',
+        'password': 'TMEroot!!abc123',
+        'endState': 'TESTS_EXECUTED_RESOURCES_RESERVED'
+    }
+    
+    # Run the deployment
+    run_id = c5t.run_deployment(
+        deployment_id=deployment_id, 
+        run_options=run_options
+    )
+    
+    # You have successfully build and launched a deployment run!!
+    
+    
 
 
 Here is a sample file.json for launch_deployment_run_from_json, replace

@@ -1100,7 +1100,7 @@ class Cons3rtApi(object):
                 raise Cons3rtApiError('JSON file not found: {f}'.format(f=json_file))
 
             try:
-                content = json.loads(json_file)
+                content = json.load(open(json_file))
             except ValueError:
                 _, ex, trace = sys.exc_info()
                 msg = 'ValueError: Unable to decode JSON from file: {f}\n{e}'.format(f=json_file, e=str(ex))
@@ -1185,7 +1185,7 @@ class Cons3rtApi(object):
                 raise Cons3rtApiError('JSON file not found: {f}'.format(f=json_file))
 
             try:
-                content = json.loads(json_file)
+                content = json.load(open(json_file))
             except ValueError:
                 _, ex, trace = sys.exc_info()
                 msg = 'ValueError: Unable to decode JSON from file: {f}\n{e}'.format(f=json_file, e=str(ex))
@@ -1250,7 +1250,7 @@ class Cons3rtApi(object):
                 raise Cons3rtApiError('JSON file not found: {f}'.format(f=json_file))
 
             try:
-                content = json.loads(json_file)
+                content = json.load(open(json_file))
             except ValueError:
                 _, ex, trace = sys.exc_info()
                 msg = 'ValueError: Unable to decode JSON from file: {f}\n{e}'.format(f=json_file, e=str(ex))
@@ -1377,7 +1377,7 @@ class Cons3rtApi(object):
             raise Cons3rtApiError('JSON file not found: {f}'.format(f=json_file))
 
         try:
-            run_options = json.loads(json_file)
+            run_options = json.load(open(json_file))
         except ValueError:
             _, ex, trace = sys.exc_info()
             msg = 'ValueError: Unable to decode JSON from file: {f}\n{e}'.format(f=json_file, e=str(ex))

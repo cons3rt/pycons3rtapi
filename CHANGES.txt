@@ -8,6 +8,10 @@ delete all inactive runs from a cloudspace, and to release all active
 runs from a cloudspace like so:
   * $ cons3rt cloudspace --ids=3,4,5 --delete_inactive_runs --release_active_runs
 * Fixed a bug in create_deployments when passing in a scenario_id
+* Changed the README from rst format to Markdown
+* Updated the sample code on the README
+* Fixed a bug reading JSON files for create_system, create_scenario,
+create_deployment, and run_deployment
 
 0.0.2
 =====
