@@ -269,9 +269,6 @@ class Client:
         headers = self.get_auth_headers(rest_user=rest_user)
         headers['Accept'] = 'application/json'
         headers['Connection'] = 'Keep-Alive'
-
-        log.info('Making HTTP request to URL [{u}], with headers: {h}'.format(u=url, h=headers))
-
         response = None
         with open(content_file, 'r') as f:
             try:
@@ -279,9 +276,8 @@ class Client:
                     "file": ("asset.zip", f, "application/octet-stream"),
                     "filename": "asset.zip"
                 })
-
                 headers["Content-Type"] = form.content_type
-
+                log.info('Making HTTP PUT request to URL [{u}], with headers: {h}'.format(u=url, h=headers))
                 response = requests.put(url, headers=headers, data=form, verify=False, cert=rest_user.cert_file_path)
             except SSLError:
                 _, ex, trace = sys.exc_info()
@@ -313,7 +309,7 @@ class Client:
         :return: (str) HTTP Response or None
         :raises: Cons3rtClientError
         """
-        log = logging.getLogger(self.cls_logger + '.http_put_multipart')
+        log = logging.getLogger(self.cls_logger + '.http_post_multipart')
         self.validate_target(target)
 
         url = self.base + target
@@ -324,9 +320,6 @@ class Client:
         headers = self.get_auth_headers(rest_user=rest_user)
         headers['Accept'] = 'application/json'
         headers['Connection'] = 'Keep-Alive'
-
-        log.info('Making HTTP request to URL [{u}], with headers: {h}'.format(u=url, h=headers))
-
         response = None
         with open(content_file, 'r') as f:
             try:
@@ -334,9 +327,8 @@ class Client:
                     "file": ("asset.zip", f, "application/octet-stream"),
                     "filename": "asset.zip"
                 })
-
                 headers["Content-Type"] = form.content_type
-
+                log.info('Making HTTP POST request to URL [{u}], with headers: {h}'.format(u=url, h=headers))
                 response = requests.post(url, headers=headers, data=form, verify=False, cert=rest_user.cert_file_path)
             except SSLError:
                 _, ex, trace = sys.exc_info()

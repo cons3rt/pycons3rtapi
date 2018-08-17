@@ -1,4 +1,9 @@
 
+0.0.4.dev0
+==========
+
+* Made a fix to log the headers for multipart encoded http PUT and POST
+
 0.0.3
 =====
 
