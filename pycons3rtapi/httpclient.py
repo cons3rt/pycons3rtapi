@@ -270,6 +270,7 @@ class Client:
         headers['Accept'] = 'application/json'
         headers['Connection'] = 'Keep-Alive'
         response = None
+
         with open(content_file, 'r') as f:
             try:
                 form = MultipartEncoder({
@@ -278,7 +279,19 @@ class Client:
                 })
                 headers["Content-Type"] = form.content_type
                 log.info('Making HTTP PUT request to URL [{u}], with headers: {h}'.format(u=url, h=headers))
-                response = requests.put(url, headers=headers, data=form, verify=False, cert=rest_user.cert_file_path)
+
+                s = requests.Session()
+                req = requests.Request('PUT', url, data=form, headers=headers)
+                prepped = req.prepare()
+
+                log.info('Prepped request: {p}'.format(p=prepped))
+                log.info('Prepped headers: {h}'.format(h=prepped.headers))
+                response = s.send(
+                    prepped,
+                    cert=rest_user.cert_file_path,
+                    verify=False
+                )
+                #response = requests.put(url, headers=headers, data=form, verify=False, cert=rest_user.cert_file_path)
             except SSLError:
                 _, ex, trace = sys.exc_info()
                 msg = '{n}: There was an SSL error making an HTTP PUT to URL: {u}\n{e}'.format(
