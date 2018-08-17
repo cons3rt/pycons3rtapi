@@ -249,43 +249,61 @@ class Client:
             raise Cons3rtClientError, msg, trace
         return response
 
-    def http_put_multipart(self, rest_user, target, content_file):
-        """Makes an HTTP Put request
+    def http_multipart(self, method, rest_user, target, content_file):
+        """Makes an HTTP Multipart request to upload a file
 
+        :param method: (str) PUT or POST
         :param rest_user: (RestUser) user info
         :param target: (str) ReST API target URL
         :param content_file: (str) path to the content file
         :return: (str) HTTP Response or None
         :raises: Cons3rtClientError
         """
-        log = logging.getLogger(self.cls_logger + '.http_put_multipart')
-        self.validate_target(target)
+        log = logging.getLogger(self.cls_logger + '.http_multipart')
 
+        # Determine the method
+        if method.upper() == 'PUT':
+            method = 'PUT'
+        elif method.upper() == 'POST':
+            method = 'POST'
+        else:
+            raise Cons3rtClientError('http_multipart supports PUT or POST, found: {m}'.format(m=method))
+
+        # Ensure a content file was provided
+        if not content_file:
+            raise Cons3rtClientError('content_file arg is None')
+
+        # Determine the full URL
+        self.validate_target(target)
         url = self.base + target
 
-        if not content_file:
-            raise Cons3rtClientError('Invalid content_file arg provided')
-
+        # Set headers
         headers = self.get_auth_headers(rest_user=rest_user)
         headers['Accept'] = 'application/json'
         headers['Connection'] = 'Keep-Alive'
+        headers['Expect'] = '100-continue'
+
+        # Open the content_file to create the multipart encoder
         response = None
-
         with open(content_file, 'r') as f:
+
+            # Create the MultipartEncoder (thanks requests_toolbelt!)
+            form = MultipartEncoder({
+                "file": ("asset.zip", f, "application/octet-stream"),
+                "filename": "asset.zip"
+            })
+
+            # Add the Content-Type
+            headers["Content-Type"] = form.content_type
+
+            # Create
+            s = requests.Session()
+            req = requests.Request(method, url, data=form, headers=headers)
+            prepped = req.prepare()
+            log.info('Request URL: {u}'.format(u=url))
+            log.info('Prepped headers: {h}'.format(h=prepped.headers))
+            log.info('Making request with method: [{m}]'.format(m=method))
             try:
-                form = MultipartEncoder({
-                    "file": ("asset.zip", f, "application/octet-stream"),
-                    "filename": "asset.zip"
-                })
-                headers["Content-Type"] = form.content_type
-                log.info('Making HTTP PUT request to URL [{u}], with headers: {h}'.format(u=url, h=headers))
-
-                s = requests.Session()
-                req = requests.Request('PUT', url, data=form, headers=headers)
-                prepped = req.prepare()
-
-                log.info('Prepped request: {p}'.format(p=prepped))
-                log.info('Prepped headers: {h}'.format(h=prepped.headers))
                 response = s.send(
                     prepped,
                     cert=rest_user.cert_file_path,
@@ -300,7 +318,7 @@ class Client:
             except requests.ConnectionError:
                 _, ex, trace = sys.exc_info()
                 msg = '{n}: Connection error encountered making HTTP PUT:\n{e}'.format(
-                        n=ex.__class__.__name__, e=str(ex))
+                    n=ex.__class__.__name__, e=str(ex))
                 raise Cons3rtClientError, msg, trace
             except requests.Timeout:
                 _, ex, trace = sys.exc_info()
@@ -309,12 +327,12 @@ class Client:
             except RequestException:
                 _, ex, trace = sys.exc_info()
                 msg = '{n}: There was a problem making an HTTP PUT to URL: {u}\n{e}'.format(
-                        n=ex.__class__.__name__, u=url, e=str(ex))
+                    n=ex.__class__.__name__, u=url, e=str(ex))
                 raise Cons3rtClientError, msg, trace
         return response
 
-    def http_post_multipart(self, rest_user, target, content_file):
-        """Makes an HTTP Put request
+    def http_put_multipart(self, rest_user, target, content_file):
+        """Makes an HTTP PUT Multipart request to upload a file
 
         :param rest_user: (RestUser) user info
         :param target: (str) ReST API target URL
@@ -322,47 +340,28 @@ class Client:
         :return: (str) HTTP Response or None
         :raises: Cons3rtClientError
         """
-        log = logging.getLogger(self.cls_logger + '.http_post_multipart')
-        self.validate_target(target)
+        return self.http_multipart(
+            method='PUT',
+            rest_user=rest_user,
+            target=target,
+            content_file=content_file
+        )
 
-        url = self.base + target
+    def http_post_multipart(self, rest_user, target, content_file):
+        """Makes an HTTP POST Multipart request to upload a file
 
-        if not content_file:
-            raise Cons3rtClientError('Invalid content_file arg provided')
-
-        headers = self.get_auth_headers(rest_user=rest_user)
-        headers['Accept'] = 'application/json'
-        headers['Connection'] = 'Keep-Alive'
-        response = None
-        with open(content_file, 'r') as f:
-            try:
-                form = MultipartEncoder({
-                    "file": ("asset.zip", f, "application/octet-stream"),
-                    "filename": "asset.zip"
-                })
-                headers["Content-Type"] = form.content_type
-                log.info('Making HTTP POST request to URL [{u}], with headers: {h}'.format(u=url, h=headers))
-                response = requests.post(url, headers=headers, data=form, verify=False, cert=rest_user.cert_file_path)
-            except SSLError:
-                _, ex, trace = sys.exc_info()
-                msg = '{n}: There was an SSL error making an HTTP POST to URL: {u}\n{e}'.format(
-                    n=ex.__class__.__name__, u=url, e=str(ex))
-                raise Cons3rtClientError, msg, trace
-            except requests.ConnectionError:
-                _, ex, trace = sys.exc_info()
-                msg = '{n}: Connection error encountered making HTTP POST multipart:\n{e}'.format(
-                    n=ex.__class__.__name__, e=str(ex))
-                raise Cons3rtClientError, msg, trace
-            except requests.Timeout:
-                _, ex, trace = sys.exc_info()
-                msg = '{n}: HTTP POST to URL {u} timed out\n{e}'.format(n=ex.__class__.__name__, u=url, e=str(ex))
-                raise Cons3rtClientError, msg, trace
-            except RequestException:
-                _, ex, trace = sys.exc_info()
-                msg = '{n}: There was a problem making an HTTP POST multipart to URL: {u}\n{e}'.format(
-                    n=ex.__class__.__name__, u=url, e=str(ex))
-                raise Cons3rtClientError, msg, trace
-        return response
+        :param rest_user: (RestUser) user info
+        :param target: (str) ReST API target URL
+        :param content_file: (str) path to the content file
+        :return: (str) HTTP Response or None
+        :raises: Cons3rtClientError
+        """
+        return self.http_multipart(
+            method='POST',
+            rest_user=rest_user,
+            target=target,
+            content_file=content_file
+        )
 
     def parse_response(self, response):
         log = logging.getLogger(self.cls_logger + '.parse_response')

@@ -2,7 +2,9 @@
 0.0.4.dev0
 ==========
 
-* Made a fix to log the headers for multipart encoded http PUT and POST
+* Added a common http_multipart method and updated the call to add
+the header "Expect: 100-Continue", which is required by CONS3RT for
+large asset imports starting in v18.12.
 
 0.0.3
 =====
