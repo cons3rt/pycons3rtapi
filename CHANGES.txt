@@ -1,6 +1,6 @@
 
-0.0.4.dev0
-==========
+0.0.4
+=====
 
 * Added a common http_multipart method and updated the call to add
 the header "Expect: 100-Continue", which is required by CONS3RT for
