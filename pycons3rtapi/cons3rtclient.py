@@ -512,6 +512,20 @@ class Cons3rtClient:
         drs = json.loads(result)
         return drs
 
+    def list_networks_in_virtualization_realm(self, vr_id):
+        response = self.http_client.http_get(
+            rest_user=self.user,
+            target='virtualizationrealms/{i}/networks'.format(i=str(vr_id))
+        )
+        try:
+            result = self.http_client.parse_response(response=response)
+        except Cons3rtClientError:
+            _, ex, trace = sys.exc_info()
+            msg = '{n}: The HTTP response contains a bad status code\n{e}'.format(n=ex.__class__.__name__, e=str(ex))
+            raise Cons3rtClientError, msg, trace
+        networks = json.loads(result)
+        return networks
+
     def release_deployment_run(self, dr_id):
         response = self.http_client.http_put(
             rest_user=self.user,

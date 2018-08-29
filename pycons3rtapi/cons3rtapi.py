@@ -1513,6 +1513,72 @@ class Cons3rtApi(object):
                 continue
         log.info('Completed releasing or cancelling active DRs in VR ID: {i}'.format(i=str(vr_id)))
 
+    def list_networks_in_virtualization_realm(self, vr_id):
+        """Lists all networks in a virtualization realm
+
+        :param vr_id: (int) virtualization realm ID
+        :return: list of networks (see API docs)
+        """
+        log = logging.getLogger(self.cls_logger + '.list_networks_in_virtualization_realm')
+
+        # Ensure the vr_id is an int
+        if not isinstance(vr_id, int):
+            try:
+                vr_id = int(vr_id)
+            except ValueError:
+                msg = 'vr_id arg must be an Integer, found: {t}'.format(t=vr_id.__class__.__name__)
+                raise Cons3rtApiError(msg)
+
+        # List networks in the virtualization realm
+        try:
+            networks = self.cons3rt_client.list_networks_in_virtualization_realm(vr_id=vr_id)
+        except Cons3rtApiError:
+            _, ex, trace = sys.exc_info()
+            msg = 'Cons3rtApiError: There was a problem listing networks in VR ID: {i}\n{e}'.format(
+                i=str(vr_id), e=str(ex))
+            raise Cons3rtApiError, msg, trace
+        log.debug('Found networks in VR ID {v}: {n}'.format(v=str(vr_id), n=networks))
+        return networks
+
+    def get_primary_network_in_virtualization_realm(self, vr_id):
+        """Returns a dict of info about the primary network in a virtualization realm
+
+        :return: (dict) primary network info (see API docs)
+        """
+        log = logging.getLogger(self.cls_logger + '.get_primary_network_in_virtualization_realm')
+
+        # Ensure the vr_id is an int
+        if not isinstance(vr_id, int):
+            try:
+                vr_id = int(vr_id)
+            except ValueError:
+                msg = 'vr_id arg must be an Integer, found: {t}'.format(t=vr_id.__class__.__name__)
+                raise Cons3rtApiError(msg)
+
+        # Get a list of all networks in the virtualization realm
+        try:
+            networks = self.list_networks_in_virtualization_realm(vr_id=vr_id)
+        except Cons3rtApiError:
+            raise
+        log.debug('Found networks in VR ID {v}: {n}'.format(v=str(vr_id), n=networks))
+
+        # Determine the primary networks
+        primary_network = None
+        for network in networks:
+            try:
+                primary = network['primary']
+            except KeyError:
+                continue
+            if not isinstance(primary, bool):
+                raise Cons3rtApiError('Expected primary to be a bool, found: {t}'.format(
+                    t=primary.__class__.__name__))
+            if primary:
+                primary_network = network
+                break
+
+        log.debug('Found primary network with info: {n}'.format(n=primary_network))
+        return primary_network
+
     def delete_inactive_run(self, dr_id):
         """Deletes an inactive run
 
