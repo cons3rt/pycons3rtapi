@@ -23,10 +23,11 @@ class Cons3rtClientError(Exception):
 
 class RestUser:
 
-    def __init__(self, token, project=None, cert_file_path=None, username=None):
+    def __init__(self, token, project=None, cert_file_path=None, key_file_path=None, username=None):
         self.token = token
         self.project_name = project
         self.cert_file_path = cert_file_path
+        self.key_file_path = key_file_path
         self.username = username
 
     def __str__(self):
