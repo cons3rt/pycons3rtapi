@@ -309,7 +309,6 @@ class Client:
                     cert=rest_user.cert_file_path,
                     verify=False
                 )
-                #response = requests.put(url, headers=headers, data=form, verify=False, cert=rest_user.cert_file_path)
             except SSLError:
                 _, ex, trace = sys.exc_info()
                 msg = '{n}: There was an SSL error making an HTTP PUT to URL: {u}\n{e}'.format(
