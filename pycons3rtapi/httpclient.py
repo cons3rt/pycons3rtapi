@@ -2,6 +2,7 @@
 
 import logging
 import sys
+import time
 
 from requests_toolbelt import MultipartEncoder
 
@@ -65,6 +66,24 @@ class Client:
 
         if target is None or not isinstance(target, basestring):
             raise Cons3rtClientError('Invalid target arg provided')
+
+    @staticmethod
+    def __http_exception__(exc, msg_part=None, start_time=None):
+        """Raises an exception with an elapsed time from a provided start time
+
+        :param exc: sys.exec_info() from the exception
+        :param start_time: time.time() seconds in epoch time
+        :param msg_part: Optional part of an error message
+        :return: None
+        :raises: Exception
+        """
+        err_msg = '{n}: '.format(n=exc[1].__class__.__name__)
+        if msg_part:
+            err_msg += msg_part
+        if start_time:
+            err_msg += ' after {t} seconds'.format(t=str(round(time.time() - start_time, 4)))
+        err_msg += '\n{e}'.format(e=str(exc[1]))
+        raise Cons3rtClientError, err_msg, exc[2]
 
     def http_get(self, rest_user, target):
         """Runs an HTTP GET request to the CONS3RT ReST API
@@ -284,6 +303,7 @@ class Client:
         headers['Expect'] = '100-continue'
 
         # Open the content_file to create the multipart encoder
+        start_time = time.time()
         response = None
         with open(content_file, 'r') as f:
 
@@ -296,13 +316,15 @@ class Client:
             # Add the Content-Type
             headers["Content-Type"] = form.content_type
 
-            # Create
+            # Create the request
             s = requests.Session()
             req = requests.Request(method, url, data=form, headers=headers)
             prepped = req.prepare()
             log.info('Request URL: {u}'.format(u=url))
             log.info('Prepped headers: {h}'.format(h=prepped.headers))
             log.info('Making request with method: [{m}]'.format(m=method))
+
+            # Send the request
             try:
                 response = s.send(
                     prepped,
@@ -310,24 +332,27 @@ class Client:
                     verify=False
                 )
             except SSLError:
-                _, ex, trace = sys.exc_info()
-                msg = '{n}: There was an SSL error making an HTTP PUT to URL: {u}\n{e}'.format(
-                    n=ex.__class__.__name__, u=url, e=str(ex))
-                raise Cons3rtClientError, msg, trace
+                self.__http_exception__(
+                    exc=sys.exc_info(),
+                    msg_part='There was an SSL error making an HTTP {m} to URL: {u}'.format(m=method, u=url),
+                    start_time=start_time)
             except requests.ConnectionError:
-                _, ex, trace = sys.exc_info()
-                msg = '{n}: Connection error encountered making HTTP PUT:\n{e}'.format(
-                    n=ex.__class__.__name__, e=str(ex))
-                raise Cons3rtClientError, msg, trace
+                self.__http_exception__(
+                    exc=sys.exc_info(),
+                    msg_part='Connection error encountered making HTTP {m}'.format(m=method),
+                    start_time=start_time)
             except requests.Timeout:
-                _, ex, trace = sys.exc_info()
-                msg = '{n}: HTTP PUT to URL {u} timed out\n{e}'.format(n=ex.__class__.__name__, u=url, e=str(ex))
-                raise Cons3rtClientError, msg, trace
+                self.__http_exception__(
+                    exc=sys.exc_info(),
+                    msg_part='HTTP {m} to URL {u} timed out'.format(m=method, u=url),
+                    start_time=start_time)
             except RequestException:
-                _, ex, trace = sys.exc_info()
-                msg = '{n}: There was a problem making an HTTP PUT to URL: {u}\n{e}'.format(
-                    n=ex.__class__.__name__, u=url, e=str(ex))
-                raise Cons3rtClientError, msg, trace
+                self.__http_exception__(
+                    exc=sys.exc_info(),
+                    msg_part='There was a problem making an HTTP {m} to URL: {u}'.format(m=method, u=url),
+                    start_time=start_time)
+        complete_time = time.time()
+        log.info('Request completed in {t} seconds'.format(t=str(round(complete_time - start_time, 2))))
         return response
 
     def http_put_multipart(self, rest_user, target, content_file):

@@ -4,6 +4,7 @@
 
 * Added a call to list networks in a virtualization realm, and to
 get the primary network
+* Added a time to the exception log messages for http_multipart
 
 0.0.4
 =====
