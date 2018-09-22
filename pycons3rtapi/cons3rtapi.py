@@ -1426,6 +1426,7 @@ class Cons3rtApi(object):
             raise Cons3rtApiError, msg, trace
         log.info('Successfully launched deployment ID {d} as deployment run ID: {i}'.format(
             i=str(dr_id), d=str(deployment_id)))
+        return dr_id
 
     def delete_inactive_runs_in_virtualization_realm(self, vr_id):
         """Deletes all inactive runs in a virtualization realm
