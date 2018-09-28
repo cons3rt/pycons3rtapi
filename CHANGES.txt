@@ -1,6 +1,11 @@
 
-0.0.5.dev0 (in development0)
-============================
+0.0.6
+=====
+
+* Updated the HmC ReSt API URL to hmc.hpc.iml
+
+0.0.5
+=====
 
 * Added a call to list networks in a virtualization realm, and to
 get the primary network
