@@ -528,20 +528,64 @@ class Cons3rtApi(object):
             raise Cons3rtApiError, msg, trace
         return clouds
 
-    def list_teams(self):
+    def list_teams(self, max_results=40, page_num=0):
         """Query CONS3RT to return a list of Teams
 
+        :param max_results (int) maximum results to provide in the response
+        :param page_num (int) page number to return
         :return: (list) of Team Info
         :raises: Cons3rtApiError
         """
         log = logging.getLogger(self.cls_logger + '.list_teams')
         log.info('Attempting to list teams...')
+
+        # Ensure the max_results is an int
+        if not isinstance(max_results, int):
+            try:
+                max_results = int(max_results)
+            except ValueError:
+                msg = 'max_results arg must be an Integer, found: {t}'.format(t=max_results.__class__.__name__)
+                raise Cons3rtApiError(msg)
+
+        # Ensure the page_num is an int
+        if not isinstance(page_num, int):
+            try:
+                page_num = int(page_num)
+            except ValueError:
+                msg = 'page_num arg must be an Integer, found: {t}'.format(t=page_num.__class__.__name__)
+                raise Cons3rtApiError(msg)
+
+        # Query for teams
         try:
-            teams = self.cons3rt_client.list_teams()
+            teams = self.cons3rt_client.list_teams(max_results=max_results, page_num=page_num)
         except Cons3rtClientError:
             _, ex, trace = sys.exc_info()
             msg = 'Unable to query CONS3RT for a list of Teams\n{e}'.format(e=str(ex))
             raise Cons3rtApiError, msg, trace
+        return teams
+
+    def list_all_teams(self):
+        """Query CONS3RT to retrieve all site teams
+
+        :return: (list) Containing all site teams
+        :raises: Cons3rtClientError
+        """
+        teams = []
+        page_num = 0
+        max_results = 100
+        while True:
+            try:
+                page_of_teams = self.list_teams(max_results=max_results, page_num=page_num)
+            except Cons3rtClientError:
+                _, ex, trace = sys.exc_info()
+                msg = '{n}: The HTTP response contains a bad status code\n{e}'.format(
+                    n=ex.__class__.__name__, e=str(ex))
+                raise Cons3rtClientError, msg, trace
+            teams += page_of_teams
+            if len(page_of_teams) < max_results:
+                break
+            else:
+                page_num += 1
         return teams
 
     def get_team_details(self, team_id):
@@ -996,6 +1040,14 @@ class Cons3rtApi(object):
             raise Cons3rtApiError, msg, trace
         log.info('Successfully enabled retrieved all site users')
         return users
+
+    def list_all_users(self):
+        """Retrieve all users from the CONS3RT site
+
+        :return: (list) containing all site users
+        :raises: Cons3rtApiError
+        """
+        return self.retrieve_all_users()
 
     def create_user_from_json(self, json_file):
         """Creates a single CONS3RT user using data from a JSON file

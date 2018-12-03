@@ -384,12 +384,17 @@ class Cons3rtClient:
         clouds = json.loads(content)
         return clouds
 
-    def list_teams(self):
+    def list_teams(self, max_results=40, page_num=0):
         """Queries CONS3RT for a list of Teams
 
-        :return: (dict) Containing Team info
+        :param max_results (int) maximum results to provide in the response
+        :param page_num (int) page number to return
+        :return: (list) Teams
         """
-        response = self.http_client.http_get(rest_user=self.user, target='teams')
+        response = self.http_client.http_get(
+            rest_user=self.user,
+            target='teams?maxresults={m}&page={p}'.format(m=str(max_results), p=str(page_num))
+        )
         content = self.http_client.parse_response(response=response)
         teams = json.loads(content)
         return teams
