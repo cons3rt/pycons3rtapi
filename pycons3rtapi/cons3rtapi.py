@@ -537,7 +537,6 @@ class Cons3rtApi(object):
         :raises: Cons3rtApiError
         """
         log = logging.getLogger(self.cls_logger + '.list_teams')
-        log.info('Attempting to list teams...')
 
         # Ensure the max_results is an int
         if not isinstance(max_results, int):
@@ -556,12 +555,15 @@ class Cons3rtApi(object):
                 raise Cons3rtApiError(msg)
 
         # Query for teams
+        log.info('Attempting to list teams with {m} max results for page number: {p}'.format(
+            m=str(max_results), p=str(page_num)))
         try:
             teams = self.cons3rt_client.list_teams(max_results=max_results, page_num=page_num)
         except Cons3rtClientError:
             _, ex, trace = sys.exc_info()
             msg = 'Unable to query CONS3RT for a list of Teams\n{e}'.format(e=str(ex))
             raise Cons3rtApiError, msg, trace
+        log.info('Found {n} teams for page number: {p}'.format(p=str(page_num), n=str(len(teams))))
         return teams
 
     def list_all_teams(self):
@@ -570,9 +572,11 @@ class Cons3rtApi(object):
         :return: (list) Containing all site teams
         :raises: Cons3rtClientError
         """
+        log = logging.getLogger(self.cls_logger + '.list_all_teams')
+        log.info('Attempting to all list teams in the site...')
         teams = []
         page_num = 0
-        max_results = 100
+        max_results = 40
         while True:
             try:
                 page_of_teams = self.list_teams(max_results=max_results, page_num=page_num)
@@ -586,6 +590,7 @@ class Cons3rtApi(object):
                 break
             else:
                 page_num += 1
+        log.info('Found {n} teams'.format(n=str(len(teams))))
         return teams
 
     def get_team_details(self, team_id):
