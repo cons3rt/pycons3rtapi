@@ -1,6 +1,6 @@
 
-0.0.7.dev0
-==========
+0.0.7
+=====
 
 * Added list_all_users and list_all_teams methods
 
