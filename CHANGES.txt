@@ -1,4 +1,9 @@
 
+0.0.8.dev0
+==========
+
+* Added set_deployment_run_lock to lock or unlock runs
+
 0.0.7
 =====
 
