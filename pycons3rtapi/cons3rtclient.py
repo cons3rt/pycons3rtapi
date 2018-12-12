@@ -571,6 +571,13 @@ class Cons3rtClient:
         result = self.http_client.parse_response(response=response)
         return result
 
+    def set_deployment_run_lock(self, dr_id, lock):
+        response = self.http_client.http_put(
+            rest_user=self.user,
+            target='drs/{i}/setlock?lock={k}'.format(i=str(dr_id), k=str(lock).lower()))
+        result = self.http_client.parse_response(response=response)
+        return result
+
     def delete_asset(self, asset_id, asset_type):
         response = self.http_client.http_delete(
             rest_user=self.user,

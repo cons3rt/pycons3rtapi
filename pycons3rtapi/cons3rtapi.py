@@ -698,7 +698,7 @@ class Cons3rtApi(object):
     def retrieve_deployment_run_details(self, dr_id):
         """Query CONS3RT to return details of a deployment run
 
-        :param: (int) deployment run ID
+        :param: dr_id: (int) deployment run ID
         :return: (dict) of deployment run detailed info
         :raises: Cons3rtApiError
         """
@@ -1690,3 +1690,36 @@ class Cons3rtApi(object):
                 i=str(vr_id), e=str(ex))
             raise Cons3rtApiError, msg, trace
         return vr_details
+
+    def set_deployment_run_lock(self, dr_id, lock):
+        """Sets the run lock on the DR ID
+
+        :param dr_id: (int) deployment run ID
+        :param lock: (bool) true to set run lock, false to disable
+        :return: None
+        :raises: Cons3rtApiError
+        """
+        log = logging.getLogger(self.cls_logger + '.set_deployment_run_lock')
+
+        # Ensure the dr_id is an int
+        if not isinstance(dr_id, int):
+            try:
+                dr_id = int(dr_id)
+            except ValueError:
+                msg = 'dr_id arg must be an Integer, found: {t}'.format(t=dr_id.__class__.__name__)
+                raise Cons3rtApiError(msg)
+
+        # Ensure lock is a bool
+        if not isinstance(lock, bool):
+            raise Cons3rtApiError('lock arg must be an bool, found: {t}'.format(t=dr_id.__class__.__name__))
+
+        # Lock the run
+        log.info('Attempting set lock on deployment run ID [{i}] to: {b}'.format(i=str(dr_id), b=str(lock)))
+        try:
+            result = self.cons3rt_client.set_deployment_run_lock(dr_id=dr_id, lock=lock)
+        except Cons3rtClientError:
+            _, ex, trace = sys.exc_info()
+            msg = 'Unable to query CONS3RT for a details of deployment run ID: {i}\n{e}'.format(
+                i=str(dr_id), e=str(ex))
+            raise Cons3rtApiError, msg, trace
+        return result
