@@ -10,7 +10,7 @@ fi
 
 # Establish a log file and log tag
 logTag="pycons3rtapi-install"
-logDir="/var/log/cons3rt"
+logDir="/opt/cons3rt-agent/log"
 logFile="${logDir}/${logTag}-$(date "+%Y%m%d-%H%M%S").log"
 
 ######################### GLOBAL VARIABLES #########################
@@ -24,20 +24,8 @@ pycons3rtapiGitUrl="https://${gitServerDomainName}/cons3rt/pycons3rtapi.git"
 # Default GIT branch
 defaultGitBranch="master"
 
-# Source code directories
-pycons3rtSourceDir=
-sourceDir=
-
-# Path to the pycons3rtapi linux install script
-pycons3rtapiInstaller=
-
-# Environment variable file
-pycons3rtEnv="/etc/profile.d/pycons3rt.sh"
-
-# Python info
-pythonHome=
-pythonExe=
-pipExe=
+# Source code directory
+sourceDir="/root/pycons3rtapi"
 
 ####################### END GLOBAL VARIABLES #######################
 
@@ -76,54 +64,6 @@ function read_deployment_properties() {
     return $?
 }
 
-function get_env() {
-    logInfo "Attempting to pycons3rt environment variables..."
-    . ${pycons3rtEnv}
-
-    # Get python home
-    if [ -z "${PYCONS3RT_PYTHON_HOME}" ] ; then
-        logErr "Required environment vairable not found: PYCONS3RT_PYTHON_HOME"
-        return 1
-    else
-        pythonHome="${PYCONS3RT_PYTHON_HOME}"
-        logInfo "Found PYCONS3RT_PYTHON_HOME: ${pythonHome}"
-    fi
-
-    # Get python
-    if [ -z "${PYCONS3RT_PYTHON}" ] ; then
-        logErr "Required environment vairable not found: PYCONS3RT_PYTHON"
-        return 2
-    else
-        pythonExe="${PYCONS3RT_PYTHON}"
-        logInfo "Found PYCONS3RT_PYTHON: ${pythonExe}"
-    fi
-
-    # Get pip
-    if [ -z "${PYCONS3RT_PIP}" ] ; then
-        logErr "Required environment vairable not found: PYCONS3RT_PIP"
-        return 3
-    else
-        pipExe="${PYCONS3RT_PIP}"
-        logInfo "Found PYCONS3RT_PIP: ${pipExe}"
-    fi
-
-    # Get pycons3rt source dir
-    if [ -z "${PYCONS3RT_SOURCE_DIR}" ] ; then
-        logErr "Required environment vairable not found: PYCONS3RT_SOURCE_DIR"
-        return 3
-    else
-        pycons3rtSourceDir="${PYCONS3RT_SOURCE_DIR}"
-        logInfo "Found PYCONS3RT_SOURCE_DIR: ${pycons3rtSourceDir}"
-    fi
-
-    # Determine the source directory
-    sourceDir="${pycons3rtSourceDir}/pycons3rtapi"
-    logInfo "Using source directory: ${sourceDir}"
-
-    logInfo "pycons3rt python environment variables loaded successfully"
-    return 0
-}
-
 function verify_dns() {
     # Tries to resolve a domain name for 5 minutes
     # Parameters:
@@ -153,25 +93,19 @@ function verify_prerequisites() {
     logInfo "Verifying prerequisites are installed..."
 
     logInfo "Ensuring python is installed..."
-    ${pythonExe} --version >> ${logFile} 2>&1
+    python --version >> ${logFile} 2>&1
 	if [ $? -ne 0 ] ; then
         logErr "Python not detected, and is a required dependency"
         return 1
     fi
 
     logInfo "Ensuring pip is installed..."
-    ${pipExe} --version >> ${logFile} 2>&1
+    pip --version >> ${logFile} 2>&1
     if [ $? -ne 0 ] ; then
         logErr "pip is not installed, this is a required dependency"
         return 2
     fi
 
-    logInfo "Ensuring the pycons3rt package is installed..."
-    ${pythonExe} -c "import pycons3rt" >> ${logFile} 2>&1
-    if [ $? -ne 0 ] ; then
-        logErr "pycons3rt not detected, this is a required dependency"
-        return 3
-    fi
     logInfo "Verified prerequisites!"
     return 0
 }
@@ -256,23 +190,13 @@ function install_pip_requirements() {
         return 2
     fi
 
-    logInfo "Using pip: ${pipExe}"
     logInfo "Attempting to install pip requirements from file at relative path: ${requirementsFileRelPath}"
-    ${pipExe} install -r ${requirementsFileRelPath} >> ${logFile} 2>&1
+    pip install -r ${requirementsFileRelPath} >> ${logFile} 2>&1
     if [ $? -ne 0 ] ; then
         logErr "There was a problem installing pip requirements"
         return 3
     fi
     logInfo "Successfully installed pip requirements"
-    return 0
-}
-
-function install_pycons3rtapi() {
-    # Install the pycons3rtapi python project into the system python lib
-    logInfo "Attempting to install pycons3rtapi..."
-    ${pycons3rtapiInstaller} >> ${logFile} 2>&1
-    if [ $? -ne 0 ] ; then logInfo "pycons3rt install exited with code: ${?}"; return 1; fi
-    logInfo "pycons3rtapi install completed successfully!"
     return 0
 }
 
@@ -294,7 +218,7 @@ function run_setup_install() {
     fi
 
     logInfo "Running setup.py..."
-    ${pythonExe} setup.py install >> ${logFile} 2>&1
+    python setup.py install >> ${logFile} 2>&1
     if [ $? -ne 0 ] ; then logErr "There was a problem running setup.py..."; return 3; fi
 
     logInfo "setup.py ran successfully!"
@@ -305,8 +229,6 @@ function main() {
     logInfo "Beginning ${logTag} install..."
     set_deployment_home
     read_deployment_properties
-    get_env
-    if [ $? -ne 0 ]; then logErr "A required environment variable is not set"; return 1; fi
     verify_prerequisites
     if [ $? -ne 0 ]; then logErr "A required prerequisite is not installed"; return 2; fi
     git_clone
