@@ -1070,6 +1070,9 @@ class Cons3rtApi(object):
         """
         log = logging.getLogger(self.cls_logger + '.toggle_remote_access')
 
+        # Re-try time for enable, disable, and checks
+        retry_time_sec = 10
+
         # Ensure the vr_id is an int
         if not isinstance(vr_id, int):
             try:
@@ -1104,23 +1107,33 @@ class Cons3rtApi(object):
         # Attempt to disable remote access
         log.info('Attempting to disable remote access in virtualization realm ID {i}'.format(
             i=vr_id))
-        try:
-            self.disable_remote_access(vr_id=vr_id)
-        except Cons3rtApiError:
-            _, ex, trace = sys.exc_info()
-            msg = 'Cons3rtApiError: There was a problem disabling remote access for VR ID: {i}\n{e}'.format(
-                i=str(vr_id), e=str(ex))
-            raise Cons3rtApiError, msg, trace
+        max_disable_retries = 12
+        disable_try_num = 1
+        while True:
+            if disable_try_num > max_disable_retries:
+                raise Cons3rtApiError(
+                    'Unable to disable remote access in virtualization realm ID [{i}] after {m} attempts'.format(
+                        i=str(vr_id), m=str(max_disable_retries)))
+            try:
+                self.disable_remote_access(vr_id=vr_id)
+            except Cons3rtApiError:
+                _, ex, trace = sys.exc_info()
+                log.warn('Cons3rtApiError: There was a problem disabling remote access for VR ID: {i}\n{e}'.format(
+                    i=str(vr_id), e=str(ex)))
+                log.info('Retrying in {t} sec...'.format(t=str(retry_time_sec)))
+                disable_try_num += 1
+                time.sleep(retry_time_sec)
+                continue
+            break
 
-        # Wait for the VR RA to report itself disabled
-        retry_time_sec = 10
-        max_retries = 30
-        try_num = 0
+        # Wait for the virtualization realm remote access to report itself disabled
+        check_max_retries = 12
+        check_try_num = 1
         while True:
             # Raise exception if the VR RA did not become disabled
-            if try_num > max_retries:
+            if check_try_num > check_max_retries:
                 raise Cons3rtApiError('VR ID [{i}] remote access did not become disabled after {n} seconds'.format(
-                    i=str(vr_id), n=str(max_retries * retry_time_sec)))
+                    i=str(vr_id), n=str(check_max_retries * retry_time_sec)))
 
             # Query the VR
             try:
@@ -1141,19 +1154,32 @@ class Cons3rtApi(object):
                     else:
                         log.info('Found remote access status for VR ID {i}: {s}'.format(
                             i=str(vr_id), s=ra_status))
-            try_num += 1
+            check_try_num += 1
             time.sleep(retry_time_sec)
 
         # Attempt to enable RA with the specified size
         log.info('Attempting to enable remote access in cloudspace ID [{i}] with size: {s}'.format(
             i=str(vr_id), s=size))
-        try:
-            self.enable_remote_access(vr_id=vr_id, size=size)
-        except Cons3rtApi:
-            _, ex, trace = sys.exc_info()
-            msg = 'Cons3rtApiError: There was a problem enabling remote access, could not complete the remote access' \
-                  'toggle for cloudspace id [{i}] with size: {s}'.format(i=str(vr_id), s=size)
-            raise Cons3rtApiError, msg, trace
+        max_enable_retries = 12
+        enable_try_num = 1
+        while True:
+            if enable_try_num > max_enable_retries:
+                raise Cons3rtApiError(
+                    'Unable to enable remote access in virtualization realm ID [{i}] after {m} attempts'.format(
+                        i=str(vr_id), m=str(max_enable_retries)))
+            log.info('Attempting to enable remote access, attempt [{n}] of [{m}]'.format(
+                n=str(enable_try_num), m=str(max_enable_retries)))
+            try:
+                self.enable_remote_access(vr_id=vr_id, size=size)
+            except Cons3rtApi:
+                _, ex, trace = sys.exc_info()
+                log.warn('Cons3rtApiError: There was a problem enabling remote access, could not complete '
+                         'the remote access enable for cloudspace id [{i}] with size: {s}'.format(i=str(vr_id), s=size))
+                log.info('Retrying in {t} sec...'.format(t=str(retry_time_sec)))
+                enable_try_num += 1
+                time.sleep(retry_time_sec)
+                continue
+            break
         log.info('Remote access toggle complete for VR ID: {i}'.format(i=str(vr_id)))
 
     def retrieve_all_users(self):
