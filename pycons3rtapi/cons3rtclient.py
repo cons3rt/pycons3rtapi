@@ -698,23 +698,47 @@ class Cons3rtClient:
             raise Cons3rtClientError, msg, trace
         return asset_id
 
-    def enable_remote_access(self, virtualization_realm_id, size):
+    def enable_remote_access(self, vr_id, size):
         """Attempts to enable remote access in virtualization realm ID to the specified size
 
-        :param virtualization_realm_id: (int) Virtualization Realm ID
+        :param vr_id: (int) Virtualization Realm ID
         :param size: (str) Size: SMALL | MEDIUM | LARGE
         :return: None
         :raises: Cons3rtClientError
         """
         target = 'virtualizationrealms/{i}/remoteaccess/?instanceType={s}'.format(
-            i=str(virtualization_realm_id), s=size)
+            i=str(vr_id), s=size)
         # Attempt to enable remote access
         try:
             response = self.http_client.http_post(rest_user=self.user, target=target)
         except Cons3rtClientError:
             _, ex, trace = sys.exc_info()
             msg = '{n}: Unable to enable remote access in virtualization realm: {i}:\n{e}'.format(
-                n=ex.__class__.__name__, i=virtualization_realm_id, e=str(ex))
+                n=ex.__class__.__name__, i=vr_id, e=str(ex))
+            raise Cons3rtClientError, msg, trace
+        try:
+            self.http_client.parse_response(response=response)
+        except Cons3rtClientError:
+            _, ex, trace = sys.exc_info()
+            msg = '{n}: The HTTP response contains a bad status code\n{e}'.format(n=ex.__class__.__name__, e=str(ex))
+            raise Cons3rtClientError, msg, trace
+
+    def disable_remote_access(self, vr_id):
+        """Attempts to enable remote access in virtualization realm ID to the specified size
+
+        :param vr_id: (int) Virtualization Realm ID
+        :return: None
+        :raises: Cons3rtClientError
+        """
+        target = 'virtualizationrealms/{i}/remoteaccess'.format(
+            i=str(vr_id))
+        # Attempt to enable remote access
+        try:
+            response = self.http_client.http_delete(rest_user=self.user, target=target)
+        except Cons3rtClientError:
+            _, ex, trace = sys.exc_info()
+            msg = '{n}: Unable to disable remote access in virtualization realm: {i}:\n{e}'.format(
+                n=ex.__class__.__name__, i=vr_id, e=str(ex))
             raise Cons3rtClientError, msg, trace
         try:
             self.http_client.parse_response(response=response)

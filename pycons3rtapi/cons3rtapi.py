@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import sys
+import time
 
 from pycons3rt.logify import Logify
 
@@ -984,23 +985,23 @@ class Cons3rtApi(object):
             f=asset_zip_file, i=str(asset_id)))
         return asset_id
 
-    def enable_remote_access(self, virtualization_realm_id, size=None):
+    def enable_remote_access(self, vr_id, size=None):
         """Enables Remote Access for a specific virtualization realm, and uses SMALL
         as the default size if none is provided.
 
-        :param virtualization_realm_id: (int) ID of the virtualization
+        :param vr_id: (int) ID of the virtualization
         :param size: (str) small, medium, or large
         :return: None
         :raises: Cons3rtApiError
         """
         log = logging.getLogger(self.cls_logger + '.enable_remote_access')
 
-        # Ensure the virtualization_realm_id is an int
-        if not isinstance(virtualization_realm_id, int):
+        # Ensure the vr_id is an int
+        if not isinstance(vr_id, int):
             try:
-                virtualization_realm_id = int(virtualization_realm_id)
+                vr_id = int(vr_id)
             except ValueError:
-                raise ValueError('virtualization_realm_id arg must be an Integer')
+                raise ValueError('vr_id arg must be an Integer')
 
         # Use small as the default size
         if size is None:
@@ -1018,16 +1019,142 @@ class Cons3rtApi(object):
 
         # Attempt to enable remote access
         log.info('Attempting to enable remote access in virtualization realm ID {i} with size: {s}'.format(
-            i=virtualization_realm_id, s=size))
+            i=vr_id, s=size))
         try:
-            self.cons3rt_client.enable_remote_access(virtualization_realm_id=virtualization_realm_id, size=size)
+            self.cons3rt_client.enable_remote_access(vr_id=vr_id, size=size)
         except Cons3rtClientError:
             _, ex, trace = sys.exc_info()
             msg = '{n}: There was a problem enabling remote access in virtualization realm ID: {i} with size: ' \
-                  '{s}\n{e}'.format(n=ex.__class__.__name__, i=virtualization_realm_id, s=size, e=str(ex))
+                  '{s}\n{e}'.format(n=ex.__class__.__name__, i=vr_id, s=size, e=str(ex))
             raise Cons3rtApiError, msg, trace
         log.info('Successfully enabled remote access in virtualization realm: {i}, with size: {s}'.format(
-            i=virtualization_realm_id, s=size))
+            i=vr_id, s=size))
+
+    def disable_remote_access(self, vr_id):
+        """Disables Remote Access for a specific virtualization realm
+
+        :param vr_id: (int) ID of the virtualization
+        :return: None
+        :raises: Cons3rtApiError
+        """
+        log = logging.getLogger(self.cls_logger + '.disable_remote_access')
+
+        # Ensure the vr_id is an int
+        if not isinstance(vr_id, int):
+            try:
+                vr_id = int(vr_id)
+            except ValueError:
+                raise ValueError('vr_id arg must be an Integer')
+
+        # Attempt to disable remote access
+        log.info('Attempting to disable remote access in virtualization realm ID: {i}'.format(
+            i=vr_id))
+        try:
+            self.cons3rt_client.disable_remote_access(vr_id=vr_id)
+        except Cons3rtClientError:
+            _, ex, trace = sys.exc_info()
+            msg = '{n}: There was a problem disabling remote access in virtualization realm ID: {i}\n{e}'.format(
+                n=ex.__class__.__name__, i=vr_id, e=str(ex))
+            raise Cons3rtApiError, msg, trace
+        log.info('Successfully disabled remote access in virtualization realm: {i}'.format(
+            i=vr_id))
+
+    def toggle_remote_access(self, vr_id, size=None):
+        """Enables Remote Access for a specific virtualization realm, and uses SMALL
+        as the default size if none is provided.
+
+        :param vr_id: (int) ID of the virtualization
+        :param size: (str) small, medium, or large
+        :return: None
+        :raises: Cons3rtApiError
+        """
+        log = logging.getLogger(self.cls_logger + '.toggle_remote_access')
+
+        # Ensure the vr_id is an int
+        if not isinstance(vr_id, int):
+            try:
+                vr_id = int(vr_id)
+            except ValueError:
+                raise ValueError('vr_id arg must be an Integer')
+
+        # Use small as the default size
+        if size is None:
+            try:
+                vr_details = self.get_virtualization_realm_details(vr_id=vr_id)
+            except Cons3rtApiError:
+                _, ex, trace = sys.exc_info()
+                msg = 'Cons3rtApiError: Unable to query VR details to determine the size\n{e}'.format(e=str(ex))
+                raise Cons3rtApiError, msg, trace
+            try:
+                size = vr_details['remoteAccessConfig']['instanceType']
+            except KeyError:
+                raise Cons3rtApiError('Remote Access config instance type not found in VR details: {d}'.format(
+                    d=str(vr_details)))
+
+        # Ensure size is a string
+        if not isinstance(size, basestring):
+            raise ValueError('The size arg must be a string')
+
+        # Acceptable sizes
+        size_options = ['SMALL', 'MEDIUM', 'LARGE']
+        size = size.upper()
+        if size not in size_options:
+            raise ValueError('The size arg must be set to SMALL, MEDIUM, or LARGE')
+
+        # Attempt to disable remote access
+        log.info('Attempting to disable remote access in virtualization realm ID {i}'.format(
+            i=vr_id))
+        try:
+            self.disable_remote_access(vr_id=vr_id)
+        except Cons3rtApiError:
+            _, ex, trace = sys.exc_info()
+            msg = 'Cons3rtApiError: There was a problem disabling remote access for VR ID: {i}\n{e}'.format(
+                i=str(vr_id), e=str(ex))
+            raise Cons3rtApiError, msg, trace
+
+        # Wait for the VR RA to report itself disabled
+        retry_time_sec = 10
+        max_retries = 30
+        try_num = 0
+        while True:
+            # Raise exception if the VR RA did not become disabled
+            if try_num > max_retries:
+                raise Cons3rtApiError('VR ID [{i}] remote access did not become disabled after {n} seconds'.format(
+                    i=str(vr_id), n=str(max_retries * retry_time_sec)))
+
+            # Query the VR
+            try:
+                vr_details = self.get_virtualization_realm_details(vr_id=vr_id)
+            except Cons3rtApiError:
+                _, ex, trace = sys.exc_info()
+                log.warn('Cons3rtApiError: Unable to query VR details to determine remote access status\n{e}'.format(
+                    e=str(ex)))
+            else:
+                try:
+                    ra_status = vr_details['remoteAccessStatus']
+                except KeyError:
+                    log.warn('Remote access status not found in VR details: {d}'.format(d=str(vr_details)))
+                else:
+                    if ra_status == 'DISABLED':
+                        log.info('Remote access status is DISABLED for VR ID: {i}'.format(i=str(vr_id)))
+                        break
+                    else:
+                        log.info('Found remote access status for VR ID {i}: {s}'.format(
+                            i=str(vr_id), s=ra_status))
+            try_num += 1
+            time.sleep(retry_time_sec)
+
+        # Attempt to enable RA with the specified size
+        log.info('Attempting to enable remote access in cloudspace ID [{i}] with size: {s}'.format(
+            i=str(vr_id), s=size))
+        try:
+            self.enable_remote_access(vr_id=vr_id, size=size)
+        except Cons3rtApi:
+            _, ex, trace = sys.exc_info()
+            msg = 'Cons3rtApiError: There was a problem enabling remote access, could not complete the remote access' \
+                  'toggle for cloudspace id [{i}] with size: {s}'.format(i=str(vr_id), s=size)
+            raise Cons3rtApiError, msg, trace
+        log.info('Remote access toggle complete for VR ID: {i}'.format(i=str(vr_id)))
 
     def retrieve_all_users(self):
         """Retrieve all users from the CONS3RT site
@@ -1696,7 +1823,7 @@ class Cons3rtApi(object):
 
         :param dr_id: (int) deployment run ID
         :param lock: (bool) true to set run lock, false to disable
-        :return: None
+        :return: (bool) result
         :raises: Cons3rtApiError
         """
         log = logging.getLogger(self.cls_logger + '.set_deployment_run_lock')
