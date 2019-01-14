@@ -769,11 +769,11 @@ class Cons3rtApi(object):
         else:
             log.info('Added Cloud Admin {u} to Cloud: {c}'.format(u=username, c=cloud_id))
 
-    def delete_asset(self, asset_type, asset_id):
+    def delete_asset(self, asset_id, asset_type=None):
         """Deletes the asset based on a provided asset type
 
-        :param asset_type: (str) asset type
         :param asset_id: (int) asset ID
+        :param asset_type: (str) asset type (deprecated)
         :return: None
         :raises: Cons3rtApiError
         """
@@ -787,32 +787,15 @@ class Cons3rtApi(object):
                 msg = 'asset_id arg must be an Integer, found: {t}'.format(t=asset_id.__class__.__name__)
                 raise Cons3rtApiError(msg)
 
-        #  Ensure the asset_zip_file arg is a string
-        if not isinstance(asset_type, basestring):
-            msg = 'The asset_type arg must be a string, found {t}'.format(t=asset_type.__class__.__name__)
-            raise Cons3rtApiError(msg)
-
-        # Determine the target based on asset_type
-        target = self.get_asset_type(asset_type=asset_type)
-        if target == '':
-            raise Cons3rtApiError('Unable to determine the target from provided asset_type: {t}'.format(t=asset_type))
-
-        # Ensure the target is valid
-        valid_targets = ['scenarios', 'deployments', 'systems', 'software', 'clouds', 'teams', 'projects']
-        if target not in valid_targets:
-            msg = 'Provided asset_type does not match a valid asset type that can be deleted.  Valid asset types ' \
-                  'are: {t}'.format(t=','.join(valid_targets))
-            raise Cons3rtApiError(msg)
-
         # Attempt to delete the target
         try:
-            self.cons3rt_client.delete_asset(asset_id=asset_id, asset_type=target)
+            self.cons3rt_client.delete_asset(asset_id=asset_id)
         except Cons3rtClientError:
             _, ex, trace = sys.exc_info()
-            msg = '{n}: Unable to delete {t} with asset ID: {i}\n{e}'.format(
-                n=ex.__class__.__name__, i=str(asset_id), t=target, e=str(ex))
+            msg = '{n}: Unable to delete asset ID: {i}\n{e}'.format(
+                n=ex.__class__.__name__, i=str(asset_id), e=str(ex))
             raise Cons3rtApiError, msg, trace
-        log.info('Successfully deleted {t} asset ID: {i}'.format(i=str(asset_id), t=target))
+        log.info('Successfully deleted asset ID: {i}'.format(i=str(asset_id)))
 
     def update_asset_content(self, asset_id, asset_zip_file):
         """Updates the asset content for the provided asset_id using the asset_zip_file

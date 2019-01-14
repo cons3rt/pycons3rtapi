@@ -578,10 +578,10 @@ class Cons3rtClient:
         result = self.http_client.parse_response(response=response)
         return result
 
-    def delete_asset(self, asset_id, asset_type):
+    def delete_asset(self, asset_id):
         response = self.http_client.http_delete(
             rest_user=self.user,
-            target='{t}/{i}'.format(t=asset_type, i=str(asset_id))
+            target='assets/{i}'.format(i=str(asset_id))
         )
         result = self.http_client.parse_response(response=response)
         return result

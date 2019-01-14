@@ -1,8 +1,9 @@
 
-0.0.8.dev0
-==========
+0.0.8
+=====
 
 * Added set_deployment_run_lock to lock or unlock runs
+* Updated delete_assets to use the /res/api/assets/ID endpoint
 
 0.0.7
 =====
