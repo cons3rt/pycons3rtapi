@@ -1,4 +1,16 @@
 
+0.0.10
+======
+
+* Added CLI commands for listing teams, projects, and clouds
+  * $ cons3rt cloud --list
+  * $ cons3rt project --list
+  * $ cons3rt team --list
+* Added CLI command for listing active runs in a cloudspace
+  * $ cons3rt cloudspace --id 123 --list
+* Added paging to clouds, and made teams paging consistent
+* Fixed a bug listing runs in a cloudspace
+
 0.0.9
 =====
 
