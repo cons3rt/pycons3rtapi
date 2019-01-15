@@ -1,4 +1,9 @@
 
+0.0.9
+=====
+
+* Added paging to the projects and deployment run calls
+
 0.0.8
 =====
 
