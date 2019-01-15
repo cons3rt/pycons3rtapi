@@ -1,4 +1,9 @@
 
+0.0.11.dev0
+===========
+
+* Bug fix on CLI command validation
+
 0.0.10
 ======
 
