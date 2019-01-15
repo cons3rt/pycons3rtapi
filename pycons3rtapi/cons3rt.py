@@ -24,7 +24,7 @@ setup_command_options = [
 
 # List of valid CLI commands
 valid_commands = setup_command_options + [
-    'cloudspace'
+    'cloudspace',
     'project',
     'cloud',
     'team'

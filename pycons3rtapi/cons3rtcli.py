@@ -173,7 +173,7 @@ class CloudspaceCli(Cons3rtCli):
         if len(self.ids) < 1:
             self.err('No Cloudspace ID(s) provided, use --id=123 or --ids=3,4,5')
             return False
-        if self.args.list_active_runs:
+        if self.args.list_active_runs or self.args.list:
             try:
                 self.list_active_runs()
             except Cons3rtCliError:
