@@ -383,13 +383,28 @@ class Cons3rtApi(object):
         :return: (list) of Project info
         """
         log = logging.getLogger(self.cls_logger + '.list_projects')
-        log.debug('Attempting to list projects for user: {u}'.format(u=self.user.username))
-        try:
-            projects = self.cons3rt_client.list_projects()
-        except Cons3rtClientError:
-            _, ex, trace = sys.exc_info()
-            msg = 'Unable to query CONS3RT for a list of projects\n{e}'.format(e=str(ex))
-            raise Cons3rtApiError, msg, trace
+        log.info('Attempting to list all user projects...')
+        projects = []
+        page_num = 0
+        max_results = 40
+        while True:
+            log.debug('Attempting to list projects for user: {u}, page: {p}, max results: {m}'.format(
+                u=self.user.username, p=str(page_num), m=str(max_results)))
+            try:
+                page_of_projects = self.cons3rt_client.list_projects(
+                    max_results=max_results,
+                    page_num=page_num
+                )
+            except Cons3rtClientError:
+                _, ex, trace = sys.exc_info()
+                msg = 'There was a problem querying CONS3RT for a list of projects\n{e}'.format(e=str(ex))
+                raise Cons3rtClientError, msg, trace
+            projects += page_of_projects
+            if len(page_of_projects) < max_results:
+                break
+            else:
+                page_num += 1
+        log.info('Found {n} user projects'.format(n=str(len(projects))))
         return projects
 
     def list_expanded_projects(self):
@@ -398,13 +413,28 @@ class Cons3rtApi(object):
         :return: (list) of Project info
         """
         log = logging.getLogger(self.cls_logger + '.list_expanded_projects')
-        log.debug('Attempting to list non-member projects for user: {u}'.format(u=self.user.username))
-        try:
-            projects = self.cons3rt_client.list_expanded_projects()
-        except Cons3rtClientError:
-            _, ex, trace = sys.exc_info()
-            msg = 'Unable to query CONS3RT for a list of projects\n{e}'.format(e=str(ex))
-            raise Cons3rtApiError, msg, trace
+        log.info('Attempting to list expanded projects...')
+        projects = []
+        page_num = 0
+        max_results = 40
+        while True:
+            log.debug('Attempting to list non-member projects for user: {u}, page: {p}, max results: {m}'.format(
+                u=self.user.username, p=str(page_num), m=str(max_results)))
+            try:
+                page_of_projects = self.cons3rt_client.list_expanded_projects(
+                    max_results=max_results,
+                    page_num=page_num
+                )
+            except Cons3rtClientError:
+                _, ex, trace = sys.exc_info()
+                msg = 'There was a problem querying CONS3RT for a list of expanded projects\n{e}'.format(e=str(ex))
+                raise Cons3rtClientError, msg, trace
+            projects += page_of_projects
+            if len(page_of_projects) < max_results:
+                break
+            else:
+                page_num += 1
+        log.info('Found {n} non-member projects'.format(n=str(len(projects))))
         return projects
 
     def list_all_projects(self):
@@ -419,9 +449,11 @@ class Cons3rtApi(object):
             non_member_projects = self.cons3rt_client.list_expanded_projects()
         except Cons3rtClientError:
             _, ex, trace = sys.exc_info()
-            msg = 'Unable to query CONS3RT for a list of projects\n{e}'.format(e=str(ex))
+            msg = 'There was a problem querying CONS3RT for a list of projects\n{e}'.format(e=str(ex))
             raise Cons3rtApiError, msg, trace
-        return member_projects + non_member_projects
+        all_projects = member_projects + non_member_projects
+        log.info('Found [{n}] projects in all'.format(n=str(len(all_projects))))
+        return all_projects
 
     def get_project_details(self, project_id):
         """Returns details for the specified project ID
@@ -503,14 +535,31 @@ class Cons3rtApi(object):
                 msg = 'vr_id arg must be an Integer, found: {t}'.format(t=vr_id.__class__.__name__)
                 raise Cons3rtApiError(msg)
 
-        log.debug('Attempting to list projects in virtualization realm ID: {i}'.format(i=str(vr_id)))
-        try:
-            projects = self.cons3rt_client.list_projects_in_virtualization_realm(vr_id=vr_id)
-        except Cons3rtClientError:
-            _, ex, trace = sys.exc_info()
-            msg = 'Unable to query CONS3RT for a list of projects in virtualization realm ID: {i}\n{e}'.format(
-                i=str(vr_id), e=str(ex))
-            raise Cons3rtApiError, msg, trace
+        log.info('Attempting to list projects in virtualization realm ID: {i}'.format(i=str(vr_id)))
+        projects = []
+        page_num = 0
+        max_results = 40
+        while True:
+            log.debug('Attempting to list projects in virtualization realm ID: {i}, page: {p}, max results: {m}'.format(
+                i=str(vr_id), p=str(page_num), m=str(max_results)))
+            try:
+                page_of_projects = self.cons3rt_client.list_projects_in_virtualization_realm(
+                    vr_id=vr_id,
+                    max_results=max_results,
+                    page_num=page_num
+                )
+            except Cons3rtClientError:
+                _, ex, trace = sys.exc_info()
+                msg = 'Unable to query CONS3RT for a list of projects in virtualization realm ID: {i}, ' \
+                      'page: {p}, max results: {m}\n{e}'.format(i=str(vr_id), p=str(page_num), m=str(max_results),
+                                                                e=str(ex))
+                raise Cons3rtClientError, msg, trace
+            projects += page_of_projects
+            if len(page_of_projects) < max_results:
+                break
+            else:
+                page_num += 1
+        log.info('Found {n} projects in virtualization realm ID: {i}'.format(n=str(len(projects)), i=str(vr_id)))
         return projects
 
     def list_clouds(self):
@@ -564,7 +613,7 @@ class Cons3rtApi(object):
             _, ex, trace = sys.exc_info()
             msg = 'Unable to query CONS3RT for a list of Teams\n{e}'.format(e=str(ex))
             raise Cons3rtApiError, msg, trace
-        log.info('Found {n} teams for page number: {p}'.format(p=str(page_num), n=str(len(teams))))
+        log.debug('Found {n} teams for page number: {p}'.format(p=str(page_num), n=str(len(teams))))
         return teams
 
     def list_all_teams(self):
@@ -686,14 +735,31 @@ class Cons3rtApi(object):
         # Attempt to get a list of deployment runs
         log.info('Attempting to get a list of deployment runs with search_type {s} in '
                  'virtualization realm ID: {i}'.format(i=str(vr_id), s=search_type))
-        try:
-            drs = self.cons3rt_client.list_deployment_runs_in_virtualization_realm(vr_id=vr_id, search_type=search_type)
-        except Cons3rtClientError:
-            _, ex, trace = sys.exc_info()
-            msg = 'Unable to query CONS3RT VR ID {i} for a list of deployment runs\n{e}'.format(
-                i=str(vr_id), e=str(ex))
-            raise Cons3rtApiError, msg, trace
-        log.info('Found {n} runs in VR ID: {i}'.format(i=str(vr_id), n=str(len(drs))))
+
+        drs = []
+        page_num = 0
+        max_results = 40
+        while True:
+            log.debug('Attempting to list runs in virtualization realm ID: {i}, page: {p}, max results: {m}'.format(
+                i=str(vr_id), p=str(page_num), m=str(max_results)))
+            try:
+                page_of_drs = self.cons3rt_client.list_deployment_runs_in_virtualization_realm(
+                    vr_id=vr_id,
+                    max_results=max_results,
+                    page_num=page_num
+                )
+            except Cons3rtClientError:
+                _, ex, trace = sys.exc_info()
+                msg = 'There was a problem querying CONS3RT for a list of runs in virtualization realm ID: {i}, ' \
+                      'page: {p}, max results: {m}\n{e}'.format(i=str(vr_id), p=str(page_num), m=str(max_results),
+                                                                e=str(ex))
+                raise Cons3rtClientError, msg, trace
+            drs += page_of_drs
+            if len(page_of_drs) < max_results:
+                break
+            else:
+                page_num += 1
+        log.info('Found {n} runs in virtualization realm ID: {i}'.format(n=str(len(drs)), i=str(vr_id)))
         return drs
 
     def retrieve_deployment_run_details(self, dr_id):

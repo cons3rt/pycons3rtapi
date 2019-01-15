@@ -331,22 +331,32 @@ class Cons3rtClient:
 
         return retval
 
-    def list_projects(self):
+    def list_projects(self, max_results=40, page_num=0):
         """Queries CONS3RT for a list of projects for the current user
 
+        :param max_results (int) maximum results to provide in the response
+        :param page_num (int) page number to return
         :return: (list) of projects
         """
-        response = self.http_client.http_get(rest_user=self.user, target='projects')
+        response = self.http_client.http_get(
+            rest_user=self.user,
+            target='projects?maxresults={m}&page={p}'.format(m=str(max_results), p=str(page_num))
+        )
         content = self.http_client.parse_response(response=response)
-        projects = json.loads(content)
-        return projects
+        teams = json.loads(content)
+        return teams
 
-    def list_expanded_projects(self):
+    def list_expanded_projects(self, max_results=40, page_num=0):
         """Queries CONS3RT for a list of projects the user is not a member of
 
+        :param max_results (int) maximum results to provide in the response
+        :param page_num (int) page number to return
         :return: (list) of projects
         """
-        response = self.http_client.http_get(rest_user=self.user, target='projects/expanded')
+        response = self.http_client.http_get(
+            rest_user=self.user,
+            target='projects/expanded?maxresults={m}&page={p}'.format(m=str(max_results), p=str(page_num))
+        )
         content = self.http_client.parse_response(response=response)
         projects = json.loads(content)
         return projects
@@ -488,10 +498,14 @@ class Cons3rtClient:
         result = self.http_client.parse_response(response=response)
         return result
 
-    def list_projects_in_virtualization_realm(self, vr_id):
+    def list_projects_in_virtualization_realm(self, vr_id, max_results=40, page_num=0):
         response = self.http_client.http_get(
             rest_user=self.user,
-            target='virtualizationrealms/' + str(vr_id) + '/projects')
+            target='virtualizationrealms/{v}/projects?maxresults={m}&page={p}'.format(
+                v=str(vr_id),
+                m=str(max_results),
+                p=str(page_num)
+            ))
         result = self.http_client.parse_response(response=response)
         projects = json.loads(result)
         return projects
@@ -503,10 +517,11 @@ class Cons3rtClient:
         result = self.http_client.parse_response(response=response)
         return result
 
-    def list_deployment_runs_in_virtualization_realm(self, vr_id, search_type='SEARCH_ALL'):
+    def list_deployment_runs_in_virtualization_realm(self, vr_id, search_type='SEARCH_ALL', max_results=40, page_num=0):
         response = self.http_client.http_get(
             rest_user=self.user,
-            target='virtualizationrealms/{i}/deploymentruns?search_type={s}'.format(i=str(vr_id), s=search_type)
+            target='virtualizationrealms/{i}/deploymentruns?search_type={s}&maxresults={m}&page={p}'.format(
+                i=str(vr_id), s=search_type, m=str(max_results), p=str(page_num))
         )
         try:
             result = self.http_client.parse_response(response=response)
