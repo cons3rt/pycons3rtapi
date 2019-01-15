@@ -443,10 +443,10 @@ class Cons3rtApi(object):
         :return: (list) of Project info
         """
         log = logging.getLogger(self.cls_logger + '.list_all_projects')
-        log.debug('Attempting to list all projects...')
+        log.info('Attempting to list all projects...')
         try:
-            member_projects = self.cons3rt_client.list_projects()
-            non_member_projects = self.cons3rt_client.list_expanded_projects()
+            member_projects = self.list_projects()
+            non_member_projects = self.list_expanded_projects()
         except Cons3rtClientError:
             _, ex, trace = sys.exc_info()
             msg = 'There was a problem querying CONS3RT for a list of projects\n{e}'.format(e=str(ex))
@@ -570,70 +570,45 @@ class Cons3rtApi(object):
         """
         log = logging.getLogger(self.cls_logger + '.list_clouds')
         log.info('Attempting to list clouds...')
-        try:
-            clouds = self.cons3rt_client.list_clouds()
-        except Cons3rtClientError:
-            _, ex, trace = sys.exc_info()
-            msg = 'Unable to query CONS3RT for a list of Clouds\n{e}'.format(e=str(ex))
-            raise Cons3rtApiError, msg, trace
+        clouds = []
+        page_num = 0
+        max_results = 40
+        while True:
+            log.debug('Attempting to list clouds with {m} max results for page number: {p}'.format(
+                m=str(max_results), p=str(page_num)))
+            try:
+                page_of_clouds = self.cons3rt_client.list_clouds(max_results=max_results, page_num=page_num)
+            except Cons3rtClientError:
+                _, ex, trace = sys.exc_info()
+                msg = 'Unable to query CONS3RT for a list of Clouds\n{e}'.format(e=str(ex))
+                raise Cons3rtClientError, msg, trace
+            clouds += page_of_clouds
+            if len(page_of_clouds) < max_results:
+                break
+            else:
+                page_num += 1
+        log.info('Found {n} clouds'.format(n=str(len(clouds))))
         return clouds
 
-    def list_teams(self, max_results=40, page_num=0):
+    def list_teams(self):
         """Query CONS3RT to return a list of Teams
 
-        :param max_results (int) maximum results to provide in the response
-        :param page_num (int) page number to return
         :return: (list) of Team Info
         :raises: Cons3rtApiError
         """
         log = logging.getLogger(self.cls_logger + '.list_teams')
-
-        # Ensure the max_results is an int
-        if not isinstance(max_results, int):
-            try:
-                max_results = int(max_results)
-            except ValueError:
-                msg = 'max_results arg must be an Integer, found: {t}'.format(t=max_results.__class__.__name__)
-                raise Cons3rtApiError(msg)
-
-        # Ensure the page_num is an int
-        if not isinstance(page_num, int):
-            try:
-                page_num = int(page_num)
-            except ValueError:
-                msg = 'page_num arg must be an Integer, found: {t}'.format(t=page_num.__class__.__name__)
-                raise Cons3rtApiError(msg)
-
-        # Query for teams
-        log.info('Attempting to list teams with {m} max results for page number: {p}'.format(
-            m=str(max_results), p=str(page_num)))
-        try:
-            teams = self.cons3rt_client.list_teams(max_results=max_results, page_num=page_num)
-        except Cons3rtClientError:
-            _, ex, trace = sys.exc_info()
-            msg = 'Unable to query CONS3RT for a list of Teams\n{e}'.format(e=str(ex))
-            raise Cons3rtApiError, msg, trace
-        log.debug('Found {n} teams for page number: {p}'.format(p=str(page_num), n=str(len(teams))))
-        return teams
-
-    def list_all_teams(self):
-        """Query CONS3RT to retrieve all site teams
-
-        :return: (list) Containing all site teams
-        :raises: Cons3rtClientError
-        """
-        log = logging.getLogger(self.cls_logger + '.list_all_teams')
-        log.info('Attempting to all list teams in the site...')
+        log.info('Attempting to list teams...')
         teams = []
         page_num = 0
         max_results = 40
         while True:
+            log.debug('Attempting to list teams with {m} max results for page number: {p}'.format(
+                m=str(max_results), p=str(page_num)))
             try:
-                page_of_teams = self.list_teams(max_results=max_results, page_num=page_num)
+                page_of_teams = self.cons3rt_client.list_teams(max_results=max_results, page_num=page_num)
             except Cons3rtClientError:
                 _, ex, trace = sys.exc_info()
-                msg = '{n}: The HTTP response contains a bad status code\n{e}'.format(
-                    n=ex.__class__.__name__, e=str(ex))
+                msg = 'Unable to query CONS3RT for a list of Teams\n{e}'.format(e=str(ex))
                 raise Cons3rtClientError, msg, trace
             teams += page_of_teams
             if len(page_of_teams) < max_results:
@@ -642,6 +617,14 @@ class Cons3rtApi(object):
                 page_num += 1
         log.info('Found {n} teams'.format(n=str(len(teams))))
         return teams
+
+    def list_all_teams(self):
+        """Query CONS3RT to retrieve all site teams (deprecated)
+
+        :return: (list) Containing all site teams
+        :raises: Cons3rtClientError
+        """
+        return self.list_teams()
 
     def get_team_details(self, team_id):
         """Returns details for the specified team ID
@@ -746,7 +729,8 @@ class Cons3rtApi(object):
                 page_of_drs = self.cons3rt_client.list_deployment_runs_in_virtualization_realm(
                     vr_id=vr_id,
                     max_results=max_results,
-                    page_num=page_num
+                    page_num=page_num,
+                    search_type=search_type
                 )
             except Cons3rtClientError:
                 _, ex, trace = sys.exc_info()
