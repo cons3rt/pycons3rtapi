@@ -631,10 +631,11 @@ class Cons3rtApi(object):
 
         :param (int) team_id: ID of the team to query
         :return: (dict) details for the team ID
+        :raises Cons3rtApiError
         """
         log = logging.getLogger(self.cls_logger + '.get_team_details')
 
-        # Ensure the vr_id is an int
+        # Ensure the team_id is an int
         if not isinstance(team_id, int):
             try:
                 team_id = int(team_id)
@@ -650,6 +651,32 @@ class Cons3rtApi(object):
             msg = 'Unable to query CONS3RT for details on team: {i}\n{e}'.format(i=str(team_id), e=str(ex))
             raise Cons3rtApiError, msg, trace
         return team_details
+
+    def get_system_details(self, system_id):
+        """Query CONS3RT to retrieve system details
+
+        :param system_id: (int) system ID to retrieve
+        :return: (dict) details for the system
+        :raises: Cons3rtApiError
+        """
+        log = logging.getLogger(self.cls_logger + '.get_system_details')
+
+        # Ensure the system_id is an int
+        if not isinstance(system_id, int):
+            try:
+                system_id = int(system_id)
+            except ValueError:
+                msg = 'system_id arg must be an Integer, found: {t}'.format(t=system_id.__class__.__name__)
+                raise Cons3rtApiError(msg)
+
+        log.debug('Attempting query system ID {i}'.format(i=str(system_id)))
+        try:
+            system_details = self.cons3rt_client.get_system_details(system_id=system_id)
+        except Cons3rtClientError:
+            _, ex, trace = sys.exc_info()
+            msg = 'Unable to query CONS3RT for details on system: {i}\n{e}'.format(i=str(system_id), e=str(ex))
+            raise Cons3rtApiError, msg, trace
+        return system_details
 
     def list_scenarios(self):
         """Query CONS3RT to return a list of Scenarios
@@ -667,6 +694,32 @@ class Cons3rtApi(object):
             raise Cons3rtApiError, msg, trace
         return scenarios
 
+    def get_scenario_details(self, scenario_id):
+        """Query CONS3RT to retrieve scenario details
+
+        :param scenario_id: (int) scenario ID to retrieve
+        :return: (dict) details for the scenario
+        :raises: Cons3rtApiError
+        """
+        log = logging.getLogger(self.cls_logger + '.get_scenario_details')
+
+        # Ensure the team_id is an int
+        if not isinstance(scenario_id, int):
+            try:
+                scenario_id = int(scenario_id)
+            except ValueError:
+                msg = 'scenario_id arg must be an Integer, found: {t}'.format(t=scenario_id.__class__.__name__)
+                raise Cons3rtApiError(msg)
+
+        log.debug('Attempting query scenario ID {i}'.format(i=str(scenario_id)))
+        try:
+            scenario_details = self.cons3rt_client.get_scenario_details(scenario_id=scenario_id)
+        except Cons3rtClientError:
+            _, ex, trace = sys.exc_info()
+            msg = 'Unable to query CONS3RT for details on scenario: {i}\n{e}'.format(i=str(scenario_id), e=str(ex))
+            raise Cons3rtApiError, msg, trace
+        return scenario_details
+
     def list_deployments(self):
         """Query CONS3RT to return a list of Deployments
 
@@ -682,6 +735,73 @@ class Cons3rtApi(object):
             msg = 'Unable to query CONS3RT for a list of deployments\n{e}'.format(e=str(ex))
             raise Cons3rtApiError, msg, trace
         return deployments
+
+    def get_deployment_details(self, deployment_id):
+        """Query CONS3RT to retrieve deployment details
+
+        :param deployment_id: (int) deployment ID to retrieve
+        :return: (dict) details for the deployment
+        :raises: Cons3rtApiError
+        """
+        log = logging.getLogger(self.cls_logger + '.get_deployment_details')
+
+        # Ensure the deployment_id is an int
+        if not isinstance(deployment_id, int):
+            try:
+                deployment_id = int(deployment_id)
+            except ValueError:
+                msg = 'deployment_id arg must be an Integer, found: {t}'.format(t=deployment_id.__class__.__name__)
+                raise Cons3rtApiError(msg)
+
+        log.debug('Attempting query deployment ID {i}'.format(i=str(deployment_id)))
+        try:
+            deployment_details = self.cons3rt_client.get_deployment_details(deployment_id=deployment_id)
+        except Cons3rtClientError:
+            _, ex, trace = sys.exc_info()
+            msg = 'Unable to query CONS3RT for details on deployment: {i}\n{e}'.format(i=str(deployment_id), e=str(ex))
+            raise Cons3rtApiError, msg, trace
+        return deployment_details
+
+    def get_deployment_bindings_for_virtualization_realm(self, deployment_id, vr_id):
+        """Get virtualization realm bindings for a deployment
+
+        :param deployment_id: (int) deployment ID to retrieve
+        :param vr_id (int) ID of the virtualization realm to retrieve bindings from
+        :return: (list) bindings for the deployment
+        :raises: Cons3rtApiError
+        """
+        log = logging.getLogger(self.cls_logger + '.get_deployment_bindings_for_virtualization_realm')
+
+        # Ensure the deployment_id is an int
+        if not isinstance(deployment_id, int):
+            try:
+                deployment_id = int(deployment_id)
+            except ValueError:
+                msg = 'deployment_id arg must be an Integer, found: {t}'.format(t=deployment_id.__class__.__name__)
+                raise Cons3rtApiError(msg)
+
+        # Ensure the vr_id is an int
+        if not isinstance(vr_id, int):
+            try:
+                vr_id = int(vr_id)
+            except ValueError:
+                msg = 'vr_id arg must be an Integer, found: {t}'.format(t=vr_id.__class__.__name__)
+                raise Cons3rtApiError(msg)
+
+        # Query cons3rt for VR bindings for the deployment
+        log.debug('Attempting query deployment ID [{i}] for bindings in VR ID: {v}'.format(
+            i=str(deployment_id), v=str(vr_id)))
+        try:
+            deployment_bindings = self.cons3rt_client.get_deployment_bindings_for_virtualization_realm(
+                deployment_id=deployment_id, vr_id=vr_id
+            )
+        except Cons3rtClientError:
+            _, ex, trace = sys.exc_info()
+            msg = 'Unable to query CONS3RT for a deployment ID [{i}] bindings in VR ID [{v}]\n{e}'.format(
+                i=str(deployment_id), v=str(vr_id), e=str(ex))
+            raise Cons3rtApiError, msg, trace
+        return deployment_bindings
+
 
     def list_deployment_runs_in_virtualization_realm(self, vr_id, search_type='SEARCH_ALL'):
         """Query CONS3RT to return a list of deployment runs in a virtualization realm
@@ -1783,6 +1903,33 @@ class Cons3rtApi(object):
             raise Cons3rtApiError, msg, trace
         log.debug('Found networks in VR ID {v}: {n}'.format(v=str(vr_id), n=networks))
         return networks
+
+    def list_templates_in_virtualization_realm(self, vr_id):
+        """Lists all templates in a virtualization realm
+
+        :param vr_id: (int) virtualization realm ID
+        :return: list of templates (see API docs)
+        """
+        log = logging.getLogger(self.cls_logger + '.list_templates_in_virtualization_realm')
+
+        # Ensure the vr_id is an int
+        if not isinstance(vr_id, int):
+            try:
+                vr_id = int(vr_id)
+            except ValueError:
+                msg = 'vr_id arg must be an Integer, found: {t}'.format(t=vr_id.__class__.__name__)
+                raise Cons3rtApiError(msg)
+
+        # List templates in the virtualization realm
+        try:
+            templates = self.cons3rt_client.list_templates_in_virtualization_realm(vr_id=vr_id)
+        except Cons3rtApiError:
+            _, ex, trace = sys.exc_info()
+            msg = 'Cons3rtApiError: There was a problem listing templates in VR ID: {i}\n{e}'.format(
+                i=str(vr_id), e=str(ex))
+            raise Cons3rtApiError, msg, trace
+        log.debug('Found templates in VR ID {v}: {t}'.format(v=str(vr_id), t=templates))
+        return templates
 
     def get_primary_network_in_virtualization_realm(self, vr_id):
         """Returns a dict of info about the primary network in a virtualization realm

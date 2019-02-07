@@ -425,6 +425,17 @@ class Cons3rtClient:
         team_details = json.loads(content)
         return team_details
 
+    def get_system_details(self, system_id):
+        """Queries CONS3RT for details of a system ID
+
+        :param system_id (int) ID of the system to retrieve
+        :return: (dict) containing system details
+        """
+        response = self.http_client.http_get(rest_user=self.user, target='systems/{i}'.format(i=str(system_id)))
+        content = self.http_client.parse_response(response=response)
+        system_details = json.loads(content)
+        return system_details
+
     def list_scenarios(self):
         """Queries CONS3RT for a list of all scenarios
 
@@ -435,6 +446,17 @@ class Cons3rtClient:
         scenarios = json.loads(content)
         return scenarios
 
+    def get_scenario_details(self, scenario_id):
+        """Queries CONS3RT for details of a scenario ID
+
+        :param scenario_id (int) ID of the scenario to retrieve
+        :return: (dict) containing scenario details
+        """
+        response = self.http_client.http_get(rest_user=self.user, target='scenarios/{i}'.format(i=str(scenario_id)))
+        content = self.http_client.parse_response(response=response)
+        scenario_details = json.loads(content)
+        return scenario_details
+
     def list_deployments(self):
         """Queries CONS3RT for a list of all deployments
 
@@ -444,6 +466,32 @@ class Cons3rtClient:
         content = self.http_client.parse_response(response=response)
         deployments = json.loads(content)
         return deployments
+
+    def get_deployment_details(self, deployment_id):
+        """Queries CONS3RT for details of a deployment ID
+
+        :param deployment_id (int) ID of the deployment to retrieve
+        :return: (dict) containing deployment details
+        """
+        response = self.http_client.http_get(rest_user=self.user, target='deployments/{i}'.format(i=str(deployment_id)))
+        content = self.http_client.parse_response(response=response)
+        deployment_details = json.loads(content)
+        return deployment_details
+
+    def get_deployment_bindings_for_virtualization_realm(self, deployment_id, vr_id):
+        """Queries CONS3RT for details of a deployment ID
+
+        :param deployment_id (int) ID of the deployment to retrieve
+        :param vr_id (int) ID of the virtualization realm to retrieve bindings from
+        :return: (dict) containing deployment binding details
+        """
+        response = self.http_client.http_get(
+            rest_user=self.user,
+            target='deployments/{i}/bindings?virtualizationRealmId={v}'.format(
+                i=str(deployment_id), v=str(vr_id)))
+        content = self.http_client.parse_response(response=response)
+        deployment_bindings = json.loads(content)
+        return deployment_bindings
 
     def retrieve_deployment_run_details(self, dr_id):
         """Queries CONS3RT for details on a deployment run ID
@@ -550,6 +598,21 @@ class Cons3rtClient:
             raise Cons3rtClientError, msg, trace
         networks = json.loads(result)
         return networks
+
+    def list_templates_in_virtualization_realm(self, vr_id):
+        response = self.http_client.http_get(
+            rest_user=self.user,
+            target='virtualizationrealms/{i}/templates?include_registrations=true&include_subscriptions=true'.format(
+                i=str(vr_id))
+        )
+        try:
+            result = self.http_client.parse_response(response=response)
+        except Cons3rtClientError:
+            _, ex, trace = sys.exc_info()
+            msg = '{n}: The HTTP response contains a bad status code\n{e}'.format(n=ex.__class__.__name__, e=str(ex))
+            raise Cons3rtClientError, msg, trace
+        templates = json.loads(result)
+        return templates
 
     def release_deployment_run(self, dr_id):
         response = self.http_client.http_put(
