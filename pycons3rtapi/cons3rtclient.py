@@ -517,15 +517,21 @@ class Cons3rtClient:
                 retval = vr['id']
         return retval
 
-    def list_virtualization_realms_for_cloud(self, cloud_id):
+    def list_virtualization_realms_for_cloud(self, cloud_id, max_results=40, page_num=0):
         """Queries CONS3RT for a list of Virtualization Realms for a specified Cloud ID
 
         :param cloud_id: (int) Cloud ID to query
+        :param max_results: (int) maximum results to return
+        :param page_num: (int) page number
         :return:
         """
         response = self.http_client.http_get(
             rest_user=self.user,
-            target='clouds/' + str(cloud_id) + '/virtualizationrealms')
+            target='clouds/{c}/virtualizationrealms?maxresults={m}&page={p}'.format(
+                c=str(cloud_id),
+                m=str(max_results),
+                p=str(page_num)
+            ))
         content = self.http_client.parse_response(response=response)
         vrs = json.loads(content)
         return vrs

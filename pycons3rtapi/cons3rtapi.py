@@ -903,13 +903,32 @@ class Cons3rtApi(object):
         """
         log = logging.getLogger(self.cls_logger + '.list_virtualization_realms_for_cloud')
         log.info('Attempting to list virtualization realms for cloud ID: {i}'.format(i=cloud_id))
-        try:
-            vrs = self.cons3rt_client.list_virtualization_realms_for_cloud(cloud_id=cloud_id)
-        except Cons3rtClientError:
-            _, ex, trace = sys.exc_info()
-            msg = 'Unable to query CONS3RT for a list of Virtualization Realms for Cloud ID: {c}\n{e}'.format(
-                c=cloud_id, e=str(ex))
-            raise Cons3rtApiError, msg, trace
+
+        log.info('Attempting to list virtualization realms in Cloud ID: {i}'.format(i=str(cloud_id)))
+        vrs = []
+        page_num = 0
+        max_results = 40
+        while True:
+            log.debug('Attempting to list virtualization realms in Cloud ID: {i}, page: {p}, max results: {m}'.format(
+                i=str(cloud_id), p=str(page_num), m=str(max_results)))
+            try:
+                page_of_vrs = self.cons3rt_client.list_virtualization_realms_for_cloud(
+                    cloud_id=cloud_id,
+                    max_results=max_results,
+                    page_num=page_num
+                )
+            except Cons3rtClientError:
+                _, ex, trace = sys.exc_info()
+                msg = 'Unable to query CONS3RT for a list of virtualization realms in Cloud ID: {i}, ' \
+                      'page: {p}, max results: {m}\n{e}'.format(i=str(cloud_id), p=str(page_num), m=str(max_results),
+                                                                e=str(ex))
+                raise Cons3rtClientError, msg, trace
+            vrs += page_of_vrs
+            if len(page_of_vrs) < max_results:
+                break
+            else:
+                page_num += 1
+        log.info('Found {n} virtualization realms in Cloud ID: {i}'.format(n=str(len(vts)), i=str(cloud_id)))
         return vrs
 
     def add_cloud_admin(self, cloud_id, username=None):
