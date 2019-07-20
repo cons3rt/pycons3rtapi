@@ -802,7 +802,6 @@ class Cons3rtApi(object):
             raise Cons3rtApiError, msg, trace
         return deployment_bindings
 
-
     def list_deployment_runs_in_virtualization_realm(self, vr_id, search_type='SEARCH_ALL'):
         """Query CONS3RT to return a list of deployment runs in a virtualization realm
 
@@ -928,7 +927,7 @@ class Cons3rtApi(object):
                 break
             else:
                 page_num += 1
-        log.info('Found {n} virtualization realms in Cloud ID: {i}'.format(n=str(len(vts)), i=str(cloud_id)))
+        log.info('Found {n} virtualization realms in Cloud ID: {i}'.format(n=str(len(vrs)), i=str(cloud_id)))
         return vrs
 
     def add_cloud_admin(self, cloud_id, username=None):
