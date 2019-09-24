@@ -104,7 +104,7 @@ class Client:
         headers = self.get_auth_headers(rest_user=rest_user)
 
         try:
-            response = requests.get(url, headers=headers, verify=False, cert=rest_user.cert_file_path)
+            response = requests.get(url, headers=headers, cert=rest_user.cert_file_path)
         except RequestException as ex:
             raise Cons3rtClientError(str(ex))
         except SSLError:
@@ -127,10 +127,10 @@ class Client:
 
         try:
             if content is None:
-                response = requests.delete(url, headers=headers, verify=False, cert=rest_user.cert_file_path)
+                response = requests.delete(url, headers=headers, cert=rest_user.cert_file_path)
             else:
                 response = requests.delete(
-                    url, headers=headers, data=content, verify=False, cert=rest_user.cert_file_path)
+                    url, headers=headers, data=content, cert=rest_user.cert_file_path)
         except RequestException as ex:
             raise Cons3rtClientError(str(ex))
         except SSLError:
@@ -178,7 +178,7 @@ class Client:
 
         # Make the put request
         try:
-            response = requests.post(url, headers=headers, data=content, verify=False, cert=rest_user.cert_file_path)
+            response = requests.post(url, headers=headers, data=content, cert=rest_user.cert_file_path)
         except SSLError:
             _, ex, trace = sys.exc_info()
             msg = '{n}: There was an SSL error making an HTTP POST to URL: {u}\n{e}'.format(
@@ -241,7 +241,7 @@ class Client:
 
         # Make the put request
         try:
-            response = requests.put(url, headers=headers, data=content, verify=False, cert=rest_user.cert_file_path)
+            response = requests.put(url, headers=headers, data=content, cert=rest_user.cert_file_path)
         except SSLError:
             _, ex, trace = sys.exc_info()
             msg = '{n}: There was an SSL error making an HTTP PUT to URL: {u}\n{e}'.format(
@@ -328,8 +328,7 @@ class Client:
             try:
                 response = s.send(
                     prepped,
-                    cert=rest_user.cert_file_path,
-                    verify=False
+                    cert=rest_user.cert_file_path
                 )
             except SSLError:
                 self.__http_exception__(
