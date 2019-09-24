@@ -736,6 +736,30 @@ class Cons3rtClient:
             msg = '{n}: The HTTP response contains a bad status code\n{e}'.format(n=ex.__class__.__name__, e=str(ex))
             raise Cons3rtClientError, msg, trace
 
+    def add_trusted_project_to_asset(self, asset_id, trusted_project_id):
+        """Add a trusted project ID to the asset ID
+
+        :param asset_id: (int) asset ID to update
+        :param trusted_project_id: (int) trusted project ID to add
+        :return: None
+        :raises: Cons3rtClientError
+        """
+        try:
+            response = self.http_client.http_put(
+                rest_user=self.user,
+                target='assets/{i}/addtrustedproject?trustedid={p}'.format(i=str(asset_id), p=str(trusted_project_id))
+            )
+        except Cons3rtClientError:
+            _, ex, trace = sys.exc_info()
+            msg = 'Problem adding trusted project {p} to asset {a}'.format(p=str(trusted_project_id), a=str(asset_id))
+            raise Cons3rtClientError, msg, trace
+        try:
+            self.http_client.parse_response(response=response)
+        except Cons3rtClientError:
+            _, ex, trace = sys.exc_info()
+            msg = 'The HTTP response contains a bad status code\n{e}'.format(e=str(ex))
+            raise Cons3rtClientError, msg, trace
+
     def update_asset_visibility(self, asset_id, visibility, asset_type):
         """Updates the asset visibility for the provided asset ID
 
