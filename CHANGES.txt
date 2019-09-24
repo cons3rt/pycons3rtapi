@@ -1,12 +1,14 @@
 
-0.0.11.dev0
-===========
+0.0.11
+======
 
 * Bug fix on CLI command validation
 * Added call to get details for systems, scenarios, and deployment
 * Added call to list templates in a cloudspace
 * Added call to list virtualization realm bindings for a deployment
 * Added paging to list_virtualization_realms_for_cloud
+* Added a list of trusted projects to the update_asset_visibility call
+* Added SSL certificate verification (finally!)
 
 0.0.10
 ======
