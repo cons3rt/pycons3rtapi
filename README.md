@@ -1,6 +1,10 @@
 pycons3rtapi
 ============
 
+# DEPRECATED
+
+## python v2 has gone, please use pycons3rt3
+
 Python API for CONS3RT
 
 Features
